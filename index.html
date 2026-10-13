@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Light Cue</title>
   <meta name="description" content="댄스 공연용 조명 큐 시뮬레이터 — 노래에 맞춰 섹션별 조명을 미리 짜고 조명감독에게 보여주세요.">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=5">
 </head>
 <body>
   <header class="topbar">
@@ -77,15 +77,16 @@
           <h2>섹션 목록</h2>
           <span class="muted" id="cueCount"></span>
         </div>
-        <div class="cue-wrap">
-          <ol class="cue-list" id="cueList"></ol>
-          <div class="quick" id="quickEdit">
-            <div class="quick-sel" id="quickSel"></div>
-            <div class="quick-swatches" id="quickSwatches"></div>
-            <input id="qColor" type="color" value="#ffffff" title="색 직접 고르기">
-            <label class="quick-bri">밝기 <b id="qBriVal">100</b>%
-              <input id="qBri" type="range" min="0" max="100" step="5" value="100">
-            </label>
+        <ol class="cue-list" id="cueList"></ol>
+        <div class="quick" id="quickEdit">
+          <div class="swatches" id="swatches"></div>
+          <div class="chip-row">
+            <button class="chip" data-bri="0">끄기</button>
+            <button class="chip" data-bri="10">10</button>
+            <button class="chip" data-bri="30">30</button>
+            <button class="chip" data-bri="50">50</button>
+            <button class="chip" data-bri="70">70</button>
+            <button class="chip" data-bri="100">100</button>
           </div>
         </div>
       </div>
@@ -135,7 +136,6 @@
             <button class="chip" data-sel="center">가운데</button>
             <button class="chip" data-sel="right">오른쪽</button>
           </div>
-          <div class="swatches" id="swatches"></div>
           <div class="field-row">
             <label class="field">직접 고르기
               <input id="colorPick" type="color" value="#ffffff">
@@ -143,14 +143,6 @@
             <label class="field grow">밝기 <span id="briVal">100</span>%
               <input id="bri" type="range" min="0" max="100" step="5" value="100">
             </label>
-          </div>
-          <div class="chip-row">
-            <button class="chip" data-bri="0">끄기</button>
-            <button class="chip" data-bri="10">10</button>
-            <button class="chip" data-bri="30">30</button>
-            <button class="chip" data-bri="50">50</button>
-            <button class="chip" data-bri="70">70</button>
-            <button class="chip" data-bri="100">100</button>
           </div>
         </div>
       </div>
@@ -168,6 +160,6 @@
       }
     }
   </script>
-  <script type="module" src="app.js"></script>
+  <script type="module" src="app.js?v=5"></script>
 </body>
 </html>

@@ -1,16 +1,10 @@
-'use strict';
+import { createStage } from './stage3d.js';
 
 /* =========================================================
    상수
    ========================================================= */
 const ROWS = 3, COLS = 6, N = ROWS * COLS;
 const ROW_NAMES = ['뒷줄', '중간줄', '앞줄'];
-// 무대 위 조명 배치 (무대 박스 기준 %). 앞줄일수록 넓게 퍼져 원근감이 생김
-const GEO = [
-  { y: 42, x0: 20, x1: 80, w: 13 },
-  { y: 61, x0: 12, x1: 88, w: 16 },
-  { y: 82, x0: 4,  x1: 96, w: 19 },
-];
 const SWATCHES = [
   ['#ffffff', '화이트'], ['#ffd59a', '웜화이트'], ['#ff2a2a', '빨강'], ['#ff7a1a', '주황'],
   ['#ffd21a', '노랑'], ['#2aff6a', '초록'], ['#1ae0ff', '시안'], ['#2a5bff', '파랑'],
@@ -54,9 +48,6 @@ function hexToRgb(h) {
 function rgbToHex(r, g, b) {
   return '#' + [r, g, b].map(v => Math.round(v).toString(16).padStart(2, '0')).join('');
 }
-// 밝기 → 화면 투명도 (낮은 밝기도 눈에 보이도록 약간 보정)
-const opacityOf = b => b <= 0 ? 0 : Math.pow(b / 100, 0.7);
-
 // 밝기 가중 평균 색 + 평균 밝기
 function avgLight(lights) {
   let r = 0, g = 0, b = 0, w = 0;
@@ -219,65 +210,22 @@ function save() {
 /* =========================================================
    무대 렌더링
    ========================================================= */
-const stageEls = [];
+let stage3d = null;
 
 function buildStage() {
-  const beams = $('#beams'), pools = $('#pools'), marks = $('#marks');
-  for (let i = 0; i < N; i++) {
-    const r = rowOf(i), c = colOf(i), g = GEO[r];
-    const x = g.x0 + (g.x1 - g.x0) * (c + 0.5) / COLS;
-
-    const beam = el('div', 'beam');
-    beam.style.left = x + '%';
-    beam.style.width = g.w + '%';
-    beam.style.height = (g.y - 3) + '%';
-
-    const pool = el('div', 'pool');
-    pool.style.left = x + '%';
-    pool.style.top = g.y + '%';
-    pool.style.width = g.w + '%';
-
-    const mark = el('button', 'mark');
-    mark.style.left = x + '%';
-    mark.style.top = g.y + '%';
-    mark.setAttribute('aria-label', `${ROW_NAMES[r]} ${c + 1}번 조명`);
-    const label = el('span');
-    mark.append(label);
-    mark.addEventListener('click', () => toggleSelect(i));
-
-    beams.append(beam); pools.append(pool); marks.append(mark);
-    stageEls.push({ beam, pool, mark, label });
+  try {
+    stage3d = createStage($('#stage'), {
+      onToggle: i => toggleSelect(i),
+      onRow: r => selectGroup('r' + r),
+    });
+  } catch (e) {
+    console.error(e);
+    $('#stage').append(el('div', 'empty', '이 브라우저에서는 3D 무대를 표시할 수 없어요 (WebGL 미지원)'));
   }
-  ROW_NAMES.forEach((name, r) => {
-    const b = el('button', 'row-label', name);
-    b.style.top = GEO[r].y + '%';
-    b.title = `${name} 전체 선택`;
-    b.addEventListener('click', () => selectGroup('r' + r));
-    marks.append(b);
-  });
 }
 
 function renderStage(lights, fade = 0.15) {
-  const dur = fade + 's';
-  lights.forEach((l, i) => {
-    const { beam, pool, mark, label } = stageEls[i];
-    const o = opacityOf(l.b);
-    beam.style.transitionDuration = dur;
-    pool.style.transitionDuration = dur;
-    beam.style.backgroundColor = l.c;
-    pool.style.backgroundColor = l.c;
-    pool.style.opacity = o;
-    beam.style.opacity = o * 0.6;
-    mark.style.setProperty('--mc', l.c);
-    mark.classList.toggle('off', !l.b);
-    label.textContent = l.b ? l.b : '';
-    mark.title = `${ROW_NAMES[rowOf(i)]} ${colOf(i) + 1}번 · 밝기 ${l.b}%`;
-  });
-  const amb = avgLight(lights);
-  const ambient = $('#ambient');
-  ambient.style.transitionDuration = dur;
-  ambient.style.backgroundColor = amb.c;
-  ambient.style.opacity = (amb.b / 100) * 0.3;
+  if (stage3d) stage3d.setLights(lights, fade);
 }
 
 function currentLights() {
@@ -629,7 +577,7 @@ function targets() {
 }
 
 function renderSelection() {
-  stageEls.forEach(({ mark }, i) => mark.classList.toggle('sel', state.selected.has(i)));
+  if (stage3d) stage3d.setSelected(state.selected);
   const n = state.selected.size;
   $('#selInfo').textContent = n
     ? `선택한 조명 ${n}개에 적용돼요. (무대의 동그라미를 눌러 선택/해제)`
@@ -798,7 +746,7 @@ async function setAudioRec(rec) {
 }
 
 async function loadAudioFile(file) {
-  if (!file) return;
+  if (!file || !state.project) return;
   if (!/^audio\//.test(file.type) && !/\.(mp3|m4a|wav|aac|ogg|flac)$/i.test(file.name)) {
     toast('오디오 파일만 올릴 수 있어요');
     return;
@@ -964,8 +912,9 @@ function bindEvents() {
     const r = e.currentTarget.getBoundingClientRect();
     seek(((e.clientX - r.left) / r.width) * duration());
   });
-  $('#stage').addEventListener('click', e => {
-    if (state.showMode && !e.target.closest('button')) togglePlay();
+  $('#btnViewReset').addEventListener('click', () => stage3d && stage3d.resetView());
+  $('#btnHouse').addEventListener('click', e => {
+    if (stage3d) e.currentTarget.classList.toggle('on', stage3d.toggleHouseLights());
   });
 
   for (const id of ['#fileAudio', '#fileAudio2']) {
@@ -1086,3 +1035,6 @@ async function init() {
 }
 
 init();
+
+// 디버깅/테스트용
+window.__lc = { state, audio, seek, addCue, applyPreset, BUILTIN_PRESETS, selectGroup, setColor, setBrightness, cues, activeCue, enterShow, exitShow };

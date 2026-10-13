@@ -28,14 +28,11 @@
     <section class="left">
       <div class="stage-wrap" id="stageWrap">
         <div class="stage" id="stage">
-          <div class="backwall"></div>
-          <div class="floor"></div>
-          <div class="ambient" id="ambient"></div>
-          <div class="truss"></div>
-          <div class="layer" id="beams"></div>
-          <div class="layer" id="pools"></div>
           <div class="layer" id="marks"></div>
-          <div class="audience-label">▼ 관객석 ▼</div>
+          <div class="stage-tools">
+            <button id="btnHouse" class="on" title="객석등 켜기/끄기">💡 객석등</button>
+            <button id="btnViewReset" title="시점 초기화 (더블클릭)">⟲ 시점</button>
+          </div>
           <div class="hud" id="hud">
             <div class="hud-now" id="hudNow">—</div>
             <div class="hud-next" id="hudNext"></div>
@@ -69,7 +66,7 @@
           <input type="file" id="fileAudio2" accept="audio/*" hidden>
         </label>
       </div>
-      <p class="hint">타임라인을 눌러 이동 · 섹션 표시선을 끌어서 시간 조절 · <kbd>Space</kbd> 재생/정지 · <kbd>←</kbd><kbd>→</kbd> 5초 이동 · <kbd>M</kbd> 섹션 추가</p>
+      <p class="hint">무대를 드래그하면 시점 회전 · 타임라인을 눌러 이동 · 섹션 표시선을 끌어서 시간 조절 · <kbd>Space</kbd> 재생/정지 · <kbd>←</kbd><kbd>→</kbd> 5초 이동 · <kbd>M</kbd> 섹션 추가</p>
     </section>
 
     <aside class="right">
@@ -151,6 +148,14 @@
   <div class="drop-overlay" id="dropOverlay">🎵 여기에 놓으면 노래가 올라가요</div>
   <audio id="audio" preload="auto"></audio>
   <div id="toast" role="status"></div>
-  <script src="app.js"></script>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"
+      }
+    }
+  </script>
+  <script type="module" src="app.js"></script>
 </body>
 </html>

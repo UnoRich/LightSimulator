@@ -265,7 +265,10 @@ h3 small { font-weight: 400; font-size: 11px; margin-left: 4px; }
   background: #08090c; padding: 3px; border-radius: 4px;
 }
 .mini i { display: block; aspect-ratio: 1; border-radius: 50%; }
-.cue-list .mini { width: 64px; }
+.cue-list .mini { width: 96px; gap: 3px; }
+.mini.pick i { cursor: pointer; transition: transform .1s; }
+.mini.pick i:hover { transform: scale(1.35); }
+.mini i.sel { opacity: 1 !important; box-shadow: 0 0 0 1.5px #fff, 0 0 0 3px var(--primary); }
 
 .chip-row { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; }
 .chip { padding: 4px 10px; font-size: 12px; border-radius: 999px; }

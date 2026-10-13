@@ -479,15 +479,29 @@ cv.addEventListener('pointercancel', endPointer);
 /* =========================================================
    섹션 목록
    ========================================================= */
-function miniGrid(lights) {
+// onPick(i)가 있으면 점을 눌러 해당 조명을 고를 수 있음, sel은 선택 표시할 조명 집합
+function miniGrid(lights, onPick, sel) {
   const g = el('div', 'mini');
-  for (const l of lights) {
+  lights.forEach((l, i) => {
     const d = el('i');
     if (l.b) { d.style.background = l.c; d.style.opacity = 0.3 + 0.7 * l.b / 100; }
     else { d.style.background = '#3a3d47'; d.style.opacity = 0.5; }
+    if (sel && sel.has(i)) d.classList.add('sel');
+    if (onPick) {
+      d.title = `${ROW_NAMES[rowOf(i)]} ${colOf(i) + 1}번 · 밝기 ${l.b}%`;
+      d.addEventListener('click', e => { e.stopPropagation(); onPick(i); });
+    }
     g.append(d);
-  }
+  });
+  if (onPick) g.classList.add('pick');
   return g;
+}
+
+// 섹션 목록의 점 클릭: 그 섹션으로 이동하고 해당 조명 선택
+function pickCueLight(cue, i) {
+  if (cue.id === state.activeCueId) { toggleSelect(i); return; }
+  state.selected = new Set([i]);
+  seek(cue.time);
 }
 
 function renderCueList() {
@@ -502,7 +516,9 @@ function renderCueList() {
   for (const c of list) {
     const li = el('li');
     if (c.id === state.activeCueId) li.classList.add('active');
-    li.append(el('span', 't', fmt(c.time)), el('span', 'n', c.name || '(이름 없음)'), miniGrid(c.lights));
+    const active = c.id === state.activeCueId;
+    li.append(el('span', 't', fmt(c.time)), el('span', 'n', c.name || '(이름 없음)'),
+      miniGrid(c.lights, i => pickCueLight(c, i), active ? state.selected : null));
     const del = el('button', 'del', '✕');
     del.title = '섹션 삭제';
     del.addEventListener('click', e => { e.stopPropagation(); deleteCue(c.id); });
@@ -578,10 +594,11 @@ function targets() {
 
 function renderSelection() {
   if (stage3d) stage3d.setSelected(state.selected);
+  $$('#cueList li.active .mini i').forEach((d, i) => d.classList.toggle('sel', state.selected.has(i)));
   const n = state.selected.size;
   $('#selInfo').textContent = n
-    ? `선택한 조명 ${n}개에 적용돼요. (무대의 동그라미를 눌러 선택/해제)`
-    : '선택 없음 → 전체 조명에 적용돼요. 무대의 동그라미를 눌러 일부만 고를 수 있어요.';
+    ? `선택한 조명 ${n}개에 적용돼요. (무대 조명이나 섹션 목록의 점을 눌러 선택/해제)`
+    : '선택 없음 → 전체 조명에 적용돼요. 무대 조명이나 섹션 목록의 점을 눌러 일부만 고를 수 있어요.';
   const cue = activeCue();
   if (!cue) return;
   const first = cue.lights[targets()[0]];

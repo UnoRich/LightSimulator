@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Light Cue</title>
+  <meta name="description" content="댄스 공연용 조명 큐 시뮬레이터 — 노래에 맞춰 섹션별 조명을 미리 짜고 조명감독에게 보여주세요.">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">💡 Light Cue</div>
+    <div class="project-bar">
+      <select id="projectSelect" aria-label="공연 선택"></select>
+      <button id="btnNewProject" title="새 공연 만들기">+ 새 공연</button>
+      <button id="btnRename">이름 변경</button>
+      <button id="btnDeleteProject" class="danger">삭제</button>
+    </div>
+    <div class="io-bar">
+      <button id="btnImport" title="공유받은 파일 열기">불러오기</button>
+      <button id="btnExport" title="파일로 저장해서 공유">내보내기</button>
+      <button id="btnShow" class="primary">▶ 공연 모드</button>
+    </div>
+    <input type="file" id="fileImport" accept=".json,application/json" hidden>
+  </header>
+
+  <main class="layout">
+    <section class="left">
+      <div class="stage-wrap" id="stageWrap">
+        <div class="stage" id="stage">
+          <div class="backwall"></div>
+          <div class="floor"></div>
+          <div class="ambient" id="ambient"></div>
+          <div class="truss"></div>
+          <div class="layer" id="beams"></div>
+          <div class="layer" id="pools"></div>
+          <div class="layer" id="marks"></div>
+          <div class="audience-label">▼ 관객석 ▼</div>
+          <div class="hud" id="hud">
+            <div class="hud-now" id="hudNow">—</div>
+            <div class="hud-next" id="hudNext"></div>
+          </div>
+        </div>
+        <div class="show-bar">
+          <button id="showPlay" class="primary">▶</button>
+          <div class="show-progress" id="showProgress"><div id="showProgressFill"></div></div>
+          <span class="show-time" id="showTime">0:00.0</span>
+          <button id="showExit">나가기 ✕</button>
+        </div>
+      </div>
+
+      <div class="transport">
+        <button id="btnPrev" title="이전 섹션">⏮</button>
+        <button id="btnPlay" class="primary play" title="재생/정지 (Space)">▶</button>
+        <button id="btnNext" title="다음 섹션">⏭</button>
+        <span class="time" id="timeText">0:00.0 / 0:00.0</span>
+        <label class="file-btn">
+          🎵 노래 올리기
+          <input type="file" id="fileAudio" accept="audio/*" hidden>
+        </label>
+        <span class="audio-name" id="audioName"></span>
+        <button id="btnAddCue" class="accent" title="지금 위치에 섹션 추가 (M)">+ 여기에 섹션 추가</button>
+      </div>
+
+      <div class="timeline-wrap" id="timelineWrap">
+        <canvas id="timeline"></canvas>
+        <label class="timeline-empty" id="timelineEmpty">
+          🎵 노래 파일을 올려주세요 (mp3, m4a, wav)<br><small>여기를 누르거나 파일을 끌어다 놓으세요</small>
+          <input type="file" id="fileAudio2" accept="audio/*" hidden>
+        </label>
+      </div>
+      <p class="hint">타임라인을 눌러 이동 · 섹션 표시선을 끌어서 시간 조절 · <kbd>Space</kbd> 재생/정지 · <kbd>←</kbd><kbd>→</kbd> 5초 이동 · <kbd>M</kbd> 섹션 추가</p>
+    </section>
+
+    <aside class="right">
+      <div class="panel">
+        <div class="panel-head">
+          <h2>섹션 목록</h2>
+          <span class="muted" id="cueCount"></span>
+        </div>
+        <ol class="cue-list" id="cueList"></ol>
+      </div>
+
+      <div class="panel" id="editorPanel">
+        <div id="cueEmpty" class="empty">
+          지금 위치에는 섹션이 없어요.<br>
+          <b>+ 여기에 섹션 추가</b>를 눌러 시작하세요.
+        </div>
+
+        <div id="cueEditor">
+          <div class="panel-head">
+            <h2>섹션 편집</h2>
+            <button id="btnCueDelete" class="danger small">섹션 삭제</button>
+          </div>
+          <div class="field-row">
+            <label class="field grow">이름
+              <input id="cueName" type="text" maxlength="40" placeholder="예: 인트로, 1절, 후렴">
+            </label>
+          </div>
+          <div class="field-row">
+            <label class="field">시작 시간
+              <input id="cueTime" type="text" inputmode="decimal" placeholder="0:00.0">
+            </label>
+            <button id="btnCueHere" class="small" title="재생 위치로 시작 시간 맞추기">현재 위치로</button>
+            <label class="field">전환 (초)
+              <input id="cueFade" type="number" min="0" max="10" step="0.5">
+            </label>
+          </div>
+
+          <h3>프리셋 <small class="muted">누르면 이 섹션 전체 조명이 바뀌어요</small></h3>
+          <div class="preset-grid" id="presetGrid"></div>
+
+          <h3>내 프리셋</h3>
+          <div class="preset-grid" id="customPresetGrid"></div>
+          <button id="btnSavePreset" class="small">+ 지금 조명을 내 프리셋으로 저장</button>
+
+          <h3>조명 개별 조정</h3>
+          <p class="muted sel-info" id="selInfo"></p>
+          <div class="chip-row">
+            <button class="chip" data-sel="all">전체</button>
+            <button class="chip" data-sel="none">선택 해제</button>
+            <button class="chip" data-sel="r0">뒷줄</button>
+            <button class="chip" data-sel="r1">중간줄</button>
+            <button class="chip" data-sel="r2">앞줄</button>
+            <button class="chip" data-sel="left">왼쪽</button>
+            <button class="chip" data-sel="center">가운데</button>
+            <button class="chip" data-sel="right">오른쪽</button>
+          </div>
+          <div class="swatches" id="swatches"></div>
+          <div class="field-row">
+            <label class="field">직접 고르기
+              <input id="colorPick" type="color" value="#ffffff">
+            </label>
+            <label class="field grow">밝기 <span id="briVal">100</span>%
+              <input id="bri" type="range" min="0" max="100" step="5" value="100">
+            </label>
+          </div>
+          <div class="chip-row">
+            <button class="chip" data-bri="0">끄기</button>
+            <button class="chip" data-bri="10">10</button>
+            <button class="chip" data-bri="30">30</button>
+            <button class="chip" data-bri="50">50</button>
+            <button class="chip" data-bri="70">70</button>
+            <button class="chip" data-bri="100">100</button>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <div class="drop-overlay" id="dropOverlay">🎵 여기에 놓으면 노래가 올라가요</div>
+  <audio id="audio" preload="auto"></audio>
+  <div id="toast" role="status"></div>
+  <script src="app.js"></script>
+</body>
+</html>

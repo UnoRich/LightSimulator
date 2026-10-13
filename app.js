@@ -517,7 +517,9 @@ function renderCueList() {
     const li = el('li');
     if (c.id === state.activeCueId) li.classList.add('active');
     const active = c.id === state.activeCueId;
-    li.append(el('span', 't', fmt(c.time)), el('span', 'n', c.name || '(이름 없음)'),
+    const info = el('div', 'info');
+    info.append(el('span', 't', fmt(c.time)), el('span', 'n', c.name || '(이름 없음)'));
+    li.append(info,
       miniGrid(c.lights, i => pickCueLight(c, i), active ? state.selected : null));
     const del = el('button', 'del', '✕');
     del.title = '섹션 삭제';
@@ -569,6 +571,7 @@ function deleteCue(id) {
 function renderEditor() {
   const cue = activeCue();
   $('#editorPanel').classList.toggle('no-cue', !cue);
+  $('#quickEdit').classList.toggle('off', !cue);
   if (!cue) return;
   const name = $('#cueName');
   if (document.activeElement !== name) name.value = cue.name;
@@ -606,6 +609,12 @@ function renderSelection() {
   if (document.activeElement !== bri) { bri.value = first.b; }
   $('#briVal').textContent = bri.value;
   $('#colorPick').value = first.c;
+  // 섹션 목록 옆 빠른 편집
+  const qBri = $('#qBri');
+  if (document.activeElement !== qBri) qBri.value = first.b;
+  $('#qBriVal').textContent = qBri.value;
+  $('#qColor').value = first.c;
+  $('#quickSel').textContent = n ? `${n}개 선택` : '전체';
 }
 
 function toggleSelect(i) {
@@ -670,14 +679,15 @@ function presetButton(name, lights, onRemove) {
 function buildPresets() {
   const g = $('#presetGrid');
   for (const p of BUILTIN_PRESETS) g.append(presetButton(p.name, p.make()));
-  const sw = $('#swatches');
-  for (const [hex, name] of SWATCHES) {
-    const b = el('button', 'swatch');
-    b.style.background = hex;
-    b.title = name;
-    b.setAttribute('aria-label', name);
-    b.addEventListener('click', () => setColor(hex));
-    sw.append(b);
+  for (const sw of [$('#swatches'), $('#quickSwatches')]) {
+    for (const [hex, name] of SWATCHES) {
+      const b = el('button', 'swatch');
+      b.style.background = hex;
+      b.title = name;
+      b.setAttribute('aria-label', name);
+      b.addEventListener('click', () => setColor(hex));
+      sw.append(b);
+    }
   }
 }
 
@@ -985,6 +995,8 @@ function bindEvents() {
   $$('[data-bri]').forEach(b => b.addEventListener('click', () => setBrightness(+b.dataset.bri)));
   $('#bri').addEventListener('input', e => { $('#briVal').textContent = e.target.value; setBrightness(+e.target.value); });
   $('#colorPick').addEventListener('input', e => setColor(e.target.value));
+  $('#qBri').addEventListener('input', e => { $('#qBriVal').textContent = e.target.value; setBrightness(+e.target.value); });
+  $('#qColor').addEventListener('input', e => setColor(e.target.value));
 
   $('#btnSavePreset').addEventListener('click', () => {
     const c = activeCue(); if (!c) return;

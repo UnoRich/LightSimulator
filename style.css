@@ -227,17 +227,31 @@ h3 small { font-weight: 400; font-size: 11px; margin-left: 4px; }
 #editorPanel.no-cue #cueEditor { display: none; }
 #editorPanel:not(.no-cue) #cueEmpty { display: none; }
 
+.cue-wrap { display: grid; grid-template-columns: minmax(0, 1fr) 104px; gap: 10px; align-items: start; }
+.quick {
+  display: flex; flex-direction: column; gap: 6px;
+  background: var(--panel-2); border-radius: 8px; padding: 8px;
+}
+.quick.off { opacity: .35; pointer-events: none; }
+.quick-sel { font-size: 11px; color: var(--muted); text-align: center; }
+.quick-swatches { display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; }
+.quick-swatches .swatch { border-width: 1px; }
+.quick input[type=color] { width: 100%; height: 26px; }
+.quick-bri { font-size: 11px; color: var(--muted); }
+.quick-bri b { color: var(--text, #fff); }
+.quick input[type=range] { height: 22px; }
 .cue-list { list-style: none; margin: 0; padding: 0; max-height: 300px; overflow-y: auto; }
 .cue-list li {
-  display: grid; grid-template-columns: 56px 1fr auto auto; align-items: center; gap: 10px;
-  padding: 7px 8px; border-radius: 8px; cursor: pointer;
+  display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 6px;
+  padding: 6px 6px; border-radius: 8px; cursor: pointer;
   border: 1px solid transparent;
 }
 .cue-list li:hover { background: var(--panel-2); }
 .cue-list li.active { background: #222842; border-color: #3b4a8c; }
+.cue-list .info { display: flex; flex-direction: column; min-width: 0; }
 .cue-list .t { font-variant-numeric: tabular-nums; color: var(--muted); font-size: 12px; }
 .cue-list .n { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.cue-list .del { padding: 2px 8px; background: transparent; border-color: transparent; color: var(--muted); }
+.cue-list .del { padding: 2px 4px; background: transparent; border-color: transparent; color: var(--muted); }
 .cue-list .del:hover { color: var(--danger); }
 .cue-list .empty-li { color: var(--muted); cursor: default; display: block; text-align: center; }
 

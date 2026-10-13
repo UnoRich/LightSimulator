@@ -77,7 +77,17 @@
           <h2>섹션 목록</h2>
           <span class="muted" id="cueCount"></span>
         </div>
-        <ol class="cue-list" id="cueList"></ol>
+        <div class="cue-wrap">
+          <ol class="cue-list" id="cueList"></ol>
+          <div class="quick" id="quickEdit">
+            <div class="quick-sel" id="quickSel"></div>
+            <div class="quick-swatches" id="quickSwatches"></div>
+            <input id="qColor" type="color" value="#ffffff" title="색 직접 고르기">
+            <label class="quick-bri">밝기 <b id="qBriVal">100</b>%
+              <input id="qBri" type="range" min="0" max="100" step="5" value="100">
+            </label>
+          </div>
+        </div>
       </div>
 
       <div class="panel" id="editorPanel">

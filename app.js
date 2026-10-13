@@ -930,6 +930,12 @@ function bindEvents() {
     seek(((e.clientX - r.left) / r.width) * duration());
   });
   $('#btnViewReset').addEventListener('click', () => stage3d && stage3d.resetView());
+  // 전면등: 100% / 50% 중 하나, 켜진 버튼을 다시 누르면 끄기
+  $$('[data-front]').forEach(b => b.addEventListener('click', () => {
+    const on = !b.classList.contains('on');
+    $$('[data-front]').forEach(x => x.classList.toggle('on', on && x === b));
+    if (stage3d) stage3d.setFrontLights(on ? +b.dataset.front : 0);
+  }));
   $('#btnHouse').addEventListener('click', e => {
     if (stage3d) e.currentTarget.classList.toggle('on', stage3d.toggleHouseLights());
   });

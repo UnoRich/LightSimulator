@@ -23,6 +23,7 @@ const CAM_HOME = new THREE.Vector3(0, 3.1, 19);
 const CAM_TARGET = new THREE.Vector3(0, 2.4, 0);
 const STAGE_H = 1.1;          // 무대 단 높이
 const HOUSE = { hemi: 0.9, fill: 1.1 };
+const FRONT_INTENSITY = 220;  // 전면등 100%일 때 (좌우 각각)
 
 const beamVert = /* glsl */`
   varying vec3 vNormal;
@@ -82,6 +83,15 @@ export function createStage(container, { onToggle, onRow }) {
   const houseFill = new THREE.DirectionalLight(0xffe2bc, HOUSE.fill);
   houseFill.position.set(0, 9, 16);
   scene.add(houseHemi, houseFill, houseFill.target);
+
+  // 전면등: 객석 쪽 위에서 무대 앞쪽을 비추는 따뜻한 흰색 워시 (좌우 2대)
+  const frontLights = [-4.5, 4.5].map(x => {
+    const s = new THREE.SpotLight(0xfff1dc, 0, 0, 0.36, 0.8, 2);
+    s.position.set(x, 8.5, 13);
+    s.target.position.set(x * 0.3, 0, 3.6);
+    scene.add(s, s.target);
+    return s;
+  });
 
   buildVenue(scene);
   const metal = new THREE.MeshStandardMaterial({ color: 0x55575e, roughness: 0.45, metalness: 0.8 });
@@ -292,7 +302,7 @@ export function createStage(container, { onToggle, onRow }) {
   }
   renderer.domElement.addEventListener('dblclick', resetView);
 
-  let houseOn = true;
+  let houseOn = false;
   function setHouseLights(on) {
     houseOn = on;
     houseHemi.intensity = on ? HOUSE.hemi : 0.03;
@@ -300,8 +310,14 @@ export function createStage(container, { onToggle, onRow }) {
     return houseOn;
   }
   const toggleHouseLights = () => setHouseLights(!houseOn);
+  setHouseLights(false);
 
-  return { setLights, setSelected, resetView, setHouseLights, toggleHouseLights };
+  // 전면등 밝기 (0~100%)
+  function setFrontLights(pct) {
+    for (const s of frontLights) s.intensity = FRONT_INTENSITY * pct / 100;
+  }
+
+  return { setLights, setSelected, resetView, setHouseLights, toggleHouseLights, setFrontLights };
 }
 
 /* =========================================================

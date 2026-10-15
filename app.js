@@ -1,4 +1,4 @@
-import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=23';
+import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=24';
 
 /* =========================================================
    상수
@@ -79,6 +79,11 @@ function fullPos(first) {
   return Array.from({ length: MAX_DANCERS }, (_, i) => clampPos(first[i] || base[i]));
 }
 const DEFAULT_POS = fullPos(OLD_DANCERS);
+function normalizeSteps(steps) {
+  if (!Array.isArray(steps)) return undefined;
+  const out = steps.filter(st => st && isFinite(st.t)).map(st => ({ t: +st.t, move: clamp(+st.move || 0.8, 0.3, 10), pos: normalizePos(st.pos) }));
+  return out.length ? out.sort((a, b) => a.t - b.t) : undefined;
+}
 function normalizePos(pos) {
   const ok = p => Array.isArray(p) && isFinite(p[0]) && isFinite(p[1]);
   return fullPos(Array.isArray(pos) ? pos.map((p, i) => ok(p) ? [+p[0], +p[1]] : DEFAULT_POS[i]) : DEFAULT_POS);
@@ -305,7 +310,7 @@ function makeGirlsCues() {
     C(42.07, 'B - 시안', 0, mix(W.all(CYAN, 70), B.alt(PINK))),
     C(54.08, '브릿지 - 웜', 1, mix(W.all(WARM, 40), B.off()), 50),
     C(63.07, '벌스 2', 0.3, mix(W.all(PINK, 60), B.floor(PINK))),
-    C(80.1, '빌드업', 1.5, mix(W.rows([0], PURPLE, 80), B.top(WHITE, 60)), 0),
+    C(80.1, '빌드업', 1.5, mix(layer(W.rows([0], PURPLE, 80), W.rows([1, 2], PURPLE, 45)), B.top(WHITE, 60)), 0),
     C(96.08, '후렴 2', 0, mix(W.all(PINK, 100), B.all2(WHITE))),
     C(111.08, '댄스 브레이크', 0, mix(W.all(CYAN, 80), B.alt(WHITE), B.floor(PINK))),
     C(118.58, '센터 프리즘', 1, mix(W.all(PURPLE, 30), B.top(LAV, 100, true, true)), 0),
@@ -314,14 +319,17 @@ function makeGirlsCues() {
     C(163.4, '클라이맥스', 0, mix(W.all(PINK, 100), B.all2(WHITE))),
     C(169.37, '엔딩 암전', 2, mix(W.off(), B.off()), 0),
   ];
-  // 대형: 섹션 시작 시점의 영상 대형 (0.75초 안에 시작하는 이동은 이 섹션에 포함)
-  for (const c of list) {
+  // 대형: 섹션 시작 시점의 영상 대형 (0.75초 안에 시작하는 이동은 이 섹션에 포함),
+  // 섹션 안에서 일어나는 나머지 대형 변화는 steps로 넣어서 섹션 수는 그대로 유지
+  list.forEach((c, i) => {
     const [start, move, pos] = GIRLS_FORMS.filter(([st]) => st <= c.time + 0.75).pop();
     c.pos = fullPos(pos);
-    const arrive = start + move;
-    // 중간 대형을 건너뛰므로 이동 시간은 최소 1초
-    if (c.time > 0) c.move = Math.max(1, +(arrive - c.time).toFixed(2));
-  }
+    if (c.time > 0) c.move = Math.max(1, +(start + move - c.time).toFixed(2));
+    const end = i + 1 < list.length ? list[i + 1].time - 0.75 : Infinity;
+    const steps = GIRLS_FORMS.filter(([st]) => st > c.time + 0.75 && st <= end)
+      .map(([t, mv, p]) => ({ t, move: mv, pos: fullPos(p) }));
+    if (steps.length) c.steps = steps;
+  });
   return list;
 }
 
@@ -330,7 +338,7 @@ const DEMOS = {
   drill: { title: '힙합 드릴', name: '데모: 힙합 드릴 ~1:40', song: 'BAND4BAND (Central Cee ft. Lil Baby)',
     duration: 100, version: 7, dancers: 11, music: 'Demo music/demo.mp3', make: makeDrillCues },
   girls: { title: '걸스 스타일', name: '데모: 걸스 스타일', song: 'CHAT (GIRLSET)',
-    duration: 172.7, version: 3, dancers: 6, names: GIRLS_NAMES, music: 'Demo music/demo2.mp3', make: makeGirlsCues },
+    duration: 172.7, version: 4, dancers: 6, names: GIRLS_NAMES, music: 'Demo music/demo2.mp3', make: makeGirlsCues },
 };
 const demoKey = p => p && p.demo ? (p.demo.id || 'drill') : null;
 function newDemoProject(key) {
@@ -508,8 +516,9 @@ function renderStage(lights, fade = 0.15) {
   if (stage3d) {
     stage3d.setLights(lights, fade);
     stage3d.setFrontLights(frontOf(activeCue()), fade);
-    const c = activeCue();
-    stage3d.setDancers(currentPos(), dancerCount(), c && c.move ? c.move : Math.max(0.8, fade));
+    const tg = dancerTarget();
+    state.danceKey = tg.key;
+    stage3d.setDancers(tg.pos, dancerCount(), tg.dur || Math.max(0.8, fade));
   }
   renderFormation();
   const f = frontOf(activeCue());
@@ -526,9 +535,25 @@ function setCueFront(cue, val) {
 
 const dancerCount = () => state.project ? state.project.dancerCount : 0;
 // 섹션 전(첫 섹션 앞)에는 첫 섹션 배치를 씀
-function currentPos() {
+// 지금 보여줄 대형: 섹션 기본 배치, 또는 섹션 안의 대형 변화(steps: [{t, move, pos}]) 중 이미 시작된 것
+function dancerTarget() {
   const c = activeCue() || cues()[0];
-  return c ? c.pos : DEFAULT_POS;
+  if (!c) return { pos: DEFAULT_POS, key: 'none', dur: null };
+  const now = audio.currentTime;
+  let pos = c.pos, start = c.time, move = c.move, key = c.id;
+  if (c.steps && activeCue()) c.steps.forEach((st, i) => {
+    if (st.t <= now) { pos = st.pos; start = st.t; move = st.move; key = `${c.id}:${i}`; }
+  });
+  return { pos, key, dur: move ? Math.max(0.3, start + move - now) : null };
+}
+const currentPos = () => dancerTarget().pos;
+// 섹션 안 대형 변화가 시작되면 댄서 이동
+function syncDancers() {
+  const tg = dancerTarget();
+  if (!stage3d || tg.key === state.danceKey) return;
+  state.danceKey = tg.key;
+  stage3d.setDancers(tg.pos, dancerCount(), tg.dur || 0.8);
+  renderFormation();
 }
 
 function currentLights() {
@@ -548,6 +573,7 @@ function syncToPlayhead(fromPlayback = false) {
     renderCueList();
     renderEditor();
   }
+  syncDancers();
   renderTime();
 }
 
@@ -910,10 +936,11 @@ function onFormDrag(e) {
   if (!cue) return;
   const p = svgPoint(e);
   const np = clampPos([p.x, p.y]);
-  const old = cue.pos[formDrag.i];
+  const target = currentPos();
+  const old = target[formDrag.i];
   if (old[0] === np[0] && old[1] === np[1]) return;
-  cue.pos[formDrag.i] = np;
-  if (stage3d) stage3d.setDancers(cue.pos, dancerCount(), 0.12);
+  target[formDrag.i] = np;
+  if (stage3d) stage3d.setDancers(target, dancerCount(), 0.12);
   $('#formInfo').textContent = describePos(formDrag.i, np);
   renderFormation();
 }
@@ -937,7 +964,8 @@ function applyFormation(key) {
   const n = dancerCount();
   if (!n) { toast('인원을 먼저 늘려 주세요'); return; }
   const made = FORMATIONS[key].make(n);
-  cue.pos = fullPos([...made, ...cue.pos.slice(n)]);
+  const target = currentPos();
+  target.splice(0, MAX_DANCERS, ...fullPos([...made, ...target.slice(n)]));
   renderStage(currentLights(), 0.15);
   save();
 }
@@ -1255,6 +1283,7 @@ async function openProject(id) {
   for (const c of p.cues) {
     if (c.lights.length !== N) c.lights = normalizeLights(c.lights);
     if (!Array.isArray(c.pos) || c.pos.length !== MAX_DANCERS) c.pos = normalizePos(c.pos);
+    if (c.steps) c.steps = normalizeSteps(c.steps);
   }
   if (!Number.isInteger(p.dancerCount)) p.dancerCount = DEFAULT_DANCERS;
   sortCues();
@@ -1416,6 +1445,8 @@ async function importFile(file) {
       lights: normalizeLights(c.lights),
       front: FRONT_STEPS.includes(c.front) ? c.front : 100,
       pos: normalizePos(c.pos),
+      steps: c.steps ? normalizeSteps(c.steps) : undefined,
+      move: isFinite(c.move) && c.move > 0 ? clamp(+c.move, 0.3, 10) : undefined,
     })),
     dancerCount: clamp(Number.isInteger(src.dancerCount) ? src.dancerCount : DEFAULT_DANCERS, 0, MAX_DANCERS),
     names: Array.isArray(src.names) ? src.names.slice(0, MAX_DANCERS).map(n => String(n || '').slice(0, 4)) : undefined,

@@ -1,5 +1,5 @@
-import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=39';
-import { GIRLS_DEMO } from './demo-girls.js?v=39';
+import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=40';
+import { GIRLS_DEMO } from './demo-girls.js?v=40';
 
 /* =========================================================
    상수
@@ -226,18 +226,11 @@ function makeDrillCues() {
     C(22.78, '빨강 + 프리즘', 0.3, mix(W.all(RED, 80), B.all(WHITE, 100, true))),
     C(28.0, '808 멈춤 - 핀', 0, mix(W.pin(WHITE, 40), B.off()), 0),
     C(29.84, '재드롭 - 벌스 1', 0, mix(W.all(BLUE, 80), B.all(WHITE), B.floor(CYAN))),
-    C(38.24, '벌스 1 - 교차 빔', 0.1, mix(W.all(BLUE, 60), B.alt(WHITE), B.floor(CYAN))),
     C(41.66, '벌스 1 - 보라', 0.3, mix(W.all(PURPLE, 60), B.top(PURPLE))),
-    C(48.51, '벌스 1 - 프리즘', 0.2, mix(W.all(RED, 70), B.top(WHITE, 100, true))),
-    C(53.64, '벌스 1 끝', 0.1, mix(W.all(WHITE, 50), B.all(WHITE, 100, true))),
     C(55.36, '쉼', 0.2, mix(W.off(), B.off()), 0),
-    C(56.63, '벌스 2 - 빨간 실루엣', 0, mix(W.rows([0], RED, 100), B.floor(RED)), 0),
-    C(62.23, '벌스 2 - 웜', 0.5, mix(W.all(WARM, 50), B.top(WARM, 80)), 50),
+    C(56.63, '벌스 2 - 센터 프리즘', 1, mix(W.all(PURPLE, 25), B.top('#6a7cff', 100, true, true)), 0),
     C(69.06, '훅 2', 0, mix(W.all(BLUE, 100), B.all(WHITE))),
-    C(75.88, '훅 2 - 핑크 프리즘', 0.1, mix(W.all(PINK, 70), B.all(WHITE, 100, true))),
-    C(79.34, '좌우 스팟', 0.1, mix(W.cols([0, 1, 4, 5], WHITE, 100), B.top(CYAN))),
-    C(86.22, '빨강 + 바닥 빔', 0, mix(W.all(RED, 80), B.top(WHITE), B.floor(RED))),
-    C(93.09, '센터 프리즘', 1, mix(W.all(PURPLE, 25), B.top('#6a7cff', 100, true, true)), 0),
+    C(86.22, '훅 2 후반 - 빨강 + 바닥 빔', 0, mix(W.all(RED, 80), B.top(WHITE), B.floor(RED))),
     C(98.13, '마무리 풀 화이트', 0, mix(W.all(WHITE, 100), B.all(WHITE, 100, true))),
     C(100, '엔딩 암전', 2, mix(W.off(), B.off()), 0),
   ];
@@ -249,10 +242,9 @@ function makeDrillCues() {
   const solo = [[0, -0.3], ...spread(10, 11.4).map(x => [x, -3.6])];
   const FORM_AT = [
     [0, back], [12.24, F.clump.make(n)], [14.05, F.v.make(n)], [22.78, F.rows.make(n)],
-    [28.0, solo], [29.84, tri], [41.66, grid], [48.51, F.circle.make(n)], [53.64, F.v.make(n)],
-    [55.36, F.clump.make(n)], [56.63, back], [62.23, F.rows.make(n)], [69.06, tri], [72.49, grid],
-    [75.88, F.invV.make(n)], [79.34, [...F.clump.make(6, -3.4, 0.5), ...F.clump.make(5, 3.4, 0.5)]],
-    [86.22, grid], [93.09, F.clump.make(n, 0, 0.6)], [98.13, tri],
+    [28.0, solo], [29.84, tri], [41.66, grid],
+    // 쉼(암전) 동안 가운데로 모여서 센터 프리즘 아래에 서기
+    [55.36, F.clump.make(n, 0, 0.6)], [69.06, tri], [86.22, grid], [98.13, tri],
   ];
   let cur = back;
   for (const c of list) {
@@ -281,7 +273,7 @@ function makeGirlsCues() {
 // 데모 목록 (version이 올라가면 이미 있는 그 데모 공연을 새 내용으로 갱신)
 const DEMOS = {
   drill: { title: '힙합 드릴', name: '데모: 힙합 드릴 ~1:40', song: 'BAND4BAND (Central Cee ft. Lil Baby)',
-    duration: 100, version: 7, dancers: 11, music: 'Demo music/Demo1/music', make: makeDrillCues },
+    duration: 100, version: 8, dancers: 11, music: 'Demo music/Demo1/music', make: makeDrillCues },
   girls: { title: '걸스 스타일', name: '데모: 걸스 스타일', song: 'CHAT (GIRLSET)',
     duration: 172.7, version: 10, dancers: 6, names: GIRLS_NAMES, music: 'Demo music/Demo2/music', make: makeGirlsCues },
 };

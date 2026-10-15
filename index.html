@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Light Cue</title>
   <meta name="description" content="댄스 공연용 조명 큐 시뮬레이터 — 노래에 맞춰 섹션별 조명을 미리 짜고 조명감독에게 보여주세요.">
-  <link rel="stylesheet" href="style.css?v=5">
+  <link rel="stylesheet" href="style.css?v=6">
 </head>
 <body>
   <header class="topbar">
@@ -87,6 +87,7 @@
             <button class="chip" data-bri="50">50</button>
             <button class="chip" data-bri="70">70</button>
             <button class="chip" data-bri="100">100</button>
+            <button class="chip prism-btn" id="btnPrism" title="선택한 빔 조명에 프리즘 켜기/끄기 (선택 없으면 빔 전체)">💎 프리즘</button>
           </div>
         </div>
       </div>
@@ -117,8 +118,11 @@
             </label>
           </div>
 
-          <h3>프리셋 <small class="muted">누르면 이 섹션 전체 조명이 바뀌어요</small></h3>
+          <h3>프리셋 <small class="muted">워시 조명만 바뀌어요 (빔은 그대로)</small></h3>
           <div class="preset-grid" id="presetGrid"></div>
+
+          <h3>빔 프리셋 <small class="muted">빔 조명만 바뀌어요</small></h3>
+          <div class="preset-grid" id="beamPresetGrid"></div>
 
           <h3>내 프리셋</h3>
           <div class="preset-grid" id="customPresetGrid"></div>
@@ -132,6 +136,8 @@
             <button class="chip" data-sel="r0">뒷줄</button>
             <button class="chip" data-sel="r1">중간줄</button>
             <button class="chip" data-sel="r2">앞줄</button>
+            <button class="chip" data-sel="r3">빔 상단</button>
+            <button class="chip" data-sel="r4">빔 하단</button>
             <button class="chip" data-sel="left">왼쪽</button>
             <button class="chip" data-sel="center">가운데</button>
             <button class="chip" data-sel="right">오른쪽</button>
@@ -160,6 +166,6 @@
       }
     }
   </script>
-  <script type="module" src="app.js?v=5"></script>
+  <script type="module" src="app.js?v=6"></script>
 </body>
 </html>

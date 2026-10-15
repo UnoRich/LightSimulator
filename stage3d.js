@@ -6,8 +6,11 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
-const ROWS = 3, COLS = 6, N = ROWS * COLS;
-const ROW_NAMES = ['뒷줄', '중간줄', '앞줄'];
+const ROWS = 3, COLS = 6, N_WASH = ROWS * COLS;
+const N_BEAM_TOP = 8, N_BEAM_FLOOR = 4, N = N_WASH + N_BEAM_TOP + N_BEAM_FLOOR;
+const ROW_NAMES = ['뒷줄', '중간줄', '앞줄', '빔 상단', '빔 하단'];
+const rowOf = i => i < N_WASH ? Math.floor(i / COLS) : i < N_WASH + N_BEAM_TOP ? 3 : 4;
+const colOf = i => i < N_WASH ? i % COLS : i < N_WASH + N_BEAM_TOP ? i - N_WASH : i - N_WASH - N_BEAM_TOP;
 const STAGE_W = 13, STAGE_D = 9;
 const TRUSS_Y = 6.2;
 // fz: 트러스(기구) 위치, tz: 바닥에 떨어지는 위치, span: 좌우 폭
@@ -22,6 +25,23 @@ const BEAM_ANGLE = 0.32;      // 조명 퍼지는 각도 (반각, 라디안)
 const CAM_HOME = new THREE.Vector3(0, 3.1, 19);
 const CAM_TARGET = new THREE.Vector3(0, 2.4, 0);
 const STAGE_H = 1.1;          // 무대 단 높이
+
+// 빔 조명 (무빙 빔): 상단 트러스 8대 + 바닥 4대
+// 기본 각도: 상단은 객석 쪽으로 부채꼴, 하단은 위로 V자 부채꼴
+const BEAM_TOP = { y: 7.3, z: -3.3, span: 10.5 };
+const BEAM_FLOOR_X = [-4.8, -1.6, 1.6, 4.8], BEAM_FLOOR_Z = -3.7;
+const BEAM_HALF = 0.03;       // 빔 반각 (아주 좁게)
+const BEAM_OP = 0.85;
+const PRISM_FACETS = 8, PRISM_SPREAD = 0.12, PRISM_SPEED = 0.9; // 프리즘: 갈래 수, 벌어짐(라디안), 회전 속도
+function beamAim(i) {
+  if (i < N_WASH + N_BEAM_TOP) {
+    const k = i - N_WASH;
+    const x = -BEAM_TOP.span / 2 + BEAM_TOP.span * (k + 0.5) / N_BEAM_TOP;
+    return { origin: new THREE.Vector3(x, BEAM_TOP.y, BEAM_TOP.z), target: new THREE.Vector3(x * 1.15, 0, 3.0), top: true };
+  }
+  const x = BEAM_FLOOR_X[i - N_WASH - N_BEAM_TOP];
+  return { origin: new THREE.Vector3(x, 0.32, BEAM_FLOOR_Z), target: new THREE.Vector3(x * 1.25, 9.2, 2.0), top: false };
+}
 const HOUSE = { hemi: 0.9, fill: 1.1 };
 const FRONT_INTENSITY = 220;  // 전면등 100%일 때 (좌우 각각)
 
@@ -121,7 +141,7 @@ export function createStage(container, { onToggle, onRow }) {
   /* ---------- 조명 ---------- */
   const lights = [];
   const down = new THREE.Vector3(0, -1, 0);
-  for (let i = 0; i < N; i++) {
+  for (let i = 0; i < N_WASH; i++) {
     const r = Math.floor(i / COLS), c = i % COLS, row = ROW_DEF[r];
     const x = -row.span / 2 + row.span * (c + 0.5) / COLS;
     const origin = new THREE.Vector3(x, TRUSS_Y, row.fz);
@@ -176,9 +196,108 @@ export function createStage(container, { onToggle, onRow }) {
 
     lights.push({
       spot, beam, lens, target, origin,
-      cur: { r: 0, g: 0, b: 0, o: 0 },
-      from: { r: 0, g: 0, b: 0, o: 0 },
-      to: { r: 0, g: 0, b: 0, o: 0 },
+      cur: { r: 0, g: 0, b: 0, o: 0, p: 0 },
+      from: { r: 0, g: 0, b: 0, o: 0, p: 0 },
+      to: { r: 0, g: 0, b: 0, o: 0, p: 0 },
+      t0: 0, dur: 0,
+    });
+  }
+
+  /* ---------- 빔 조명 ---------- */
+  const poolTex = (() => {
+    const cv = document.createElement('canvas');
+    cv.width = cv.height = 64;
+    const g = cv.getContext('2d');
+    const grd = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+    grd.addColorStop(0, 'rgba(255,255,255,1)');
+    grd.addColorStop(0.45, 'rgba(255,255,255,.6)');
+    grd.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = grd;
+    g.fillRect(0, 0, 64, 64);
+    return new THREE.CanvasTexture(cv);
+  })();
+  const beamTruss = new THREE.Mesh(new THREE.BoxGeometry(BEAM_TOP.span + 1.2, 0.18, 0.18), metal);
+  beamTruss.position.set(0, BEAM_TOP.y + 0.42, BEAM_TOP.z);
+  scene.add(beamTruss);
+  const makeBeamMat = origin => new THREE.ShaderMaterial({
+    uniforms: {
+      uColor: { value: new THREE.Color() },
+      uOpacity: { value: 0 },
+      uOrigin: { value: origin },
+      uLength: { value: 1 },
+      uTime: { value: 0 },
+    },
+    vertexShader: beamVert,
+    fragmentShader: beamFrag,
+    transparent: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+    side: THREE.DoubleSide,
+  });
+  for (let i = N_WASH; i < N; i++) {
+    const { origin, target, top } = beamAim(i);
+    const dir = target.clone().sub(origin).normalize();
+    const len = origin.distanceTo(target);
+    const beamGeo = new THREE.CylinderGeometry(0.05, 0.05 + Math.tan(BEAM_HALF) * len, len, 24, 1, true);
+    beamGeo.translate(0, -len / 2, 0);
+
+    // 축 방향 정렬용 그룹 (로컬 -Y가 빔 방향)
+    const aim = new THREE.Group();
+    aim.position.copy(origin);
+    aim.quaternion.setFromUnitVectors(down, dir);
+    scene.add(aim);
+
+    const mat = makeBeamMat(origin);
+    mat.uniforms.uLength.value = len * 1.05;
+    const beam = new THREE.Mesh(beamGeo, mat);
+    beam.visible = false;
+    aim.add(beam);
+
+    // 프리즘: 축 둘레로 여러 갈래, 천천히 회전
+    const spin = new THREE.Group();
+    aim.add(spin);
+    const pmat = makeBeamMat(origin);
+    pmat.uniforms.uLength.value = len * 1.05;
+    for (let k = 0; k < PRISM_FACETS; k++) {
+      const holder = new THREE.Group();
+      holder.rotation.y = k * Math.PI * 2 / PRISM_FACETS;
+      const facet = new THREE.Mesh(beamGeo, pmat);
+      facet.rotation.x = PRISM_SPREAD;
+      holder.add(facet);
+      spin.add(holder);
+    }
+    spin.visible = false;
+
+    // 바닥에 떨어지는 빛 자국 (상단 빔만, 실제 조명 대신 가벼운 가산 원판)
+    let pool = null;
+    if (top) {
+      const pr = Math.tan(BEAM_HALF) * len * 2.2;
+      pool = new THREE.Mesh(new THREE.CircleGeometry(pr, 32), new THREE.MeshBasicMaterial({
+        map: poolTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0,
+      }));
+      pool.rotation.x = -Math.PI / 2;
+      pool.position.set(target.x, 0.012, target.z);
+      scene.add(pool);
+    }
+
+    // 무빙 헤드 기구: 받침 + 머리
+    const baseMesh = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.16, 0.34), fixtureMat);
+    baseMesh.position.set(origin.x, origin.y + (top ? 0.3 : -0.24), origin.z);
+    scene.add(baseMesh);
+    const head = new THREE.Group();
+    const can = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.17, 0.4, 20), fixtureMat);
+    can.position.y = 0.12;
+    const lens = new THREE.Mesh(new THREE.CircleGeometry(0.13, 24), new THREE.MeshBasicMaterial({ color: 0x000000 }));
+    lens.rotation.x = Math.PI / 2;
+    lens.position.y = -0.085;
+    head.add(can, lens);
+    aim.add(head);
+
+    lights.push({
+      spot: null, pool, beam, lens, target, origin, spin, pmat, isBeam: true,
+      cur: { r: 0, g: 0, b: 0, o: 0, p: 0 },
+      from: { r: 0, g: 0, b: 0, o: 0, p: 0 },
+      to: { r: 0, g: 0, b: 0, o: 0, p: 0 },
       t0: 0, dur: 0,
     });
   }
@@ -187,10 +306,9 @@ export function createStage(container, { onToggle, onRow }) {
   const marksLayer = container.querySelector('#marks');
   const marks = [];
   for (let i = 0; i < N; i++) {
-    const r = Math.floor(i / COLS), c = i % COLS;
     const mark = document.createElement('button');
     mark.className = 'mark';
-    mark.setAttribute('aria-label', `${ROW_NAMES[r]} ${c + 1}번 조명`);
+    mark.setAttribute('aria-label', `${ROW_NAMES[rowOf(i)]} ${colOf(i) + 1}번 조명`);
     mark.addEventListener('click', () => onToggle(i));
     marksLayer.append(mark);
     marks.push({ mark });
@@ -202,8 +320,10 @@ export function createStage(container, { onToggle, onRow }) {
     b.title = `${name} 전체 선택`;
     b.addEventListener('click', () => onRow(r));
     marksLayer.append(b);
-    const row = ROW_DEF[r];
-    return { el: b, pos: new THREE.Vector3(-row.span / 2 - 1.0, TRUSS_Y + 0.35, row.fz) };
+    const pos = r === 3 ? new THREE.Vector3(-BEAM_TOP.span / 2 - 0.8, BEAM_TOP.y + 0.42, BEAM_TOP.z)
+      : r === 4 ? new THREE.Vector3(BEAM_FLOOR_X[0] - 0.6, 0.3, BEAM_FLOOR_Z)
+      : new THREE.Vector3(-ROW_DEF[r].span / 2 - 1.0, TRUSS_Y + 0.35, ROW_DEF[r].fz);
+    return { el: b, pos };
   });
 
   /* ---------- 후처리 (블룸) ---------- */
@@ -258,13 +378,29 @@ export function createStage(container, { onToggle, onRow }) {
       cur.g = from.g + (to.g - from.g) * k;
       cur.b = from.b + (to.b - from.b) * k;
       cur.o = from.o + (to.o - from.o) * k;
-      L.spot.color.setRGB(cur.r, cur.g, cur.b);
-      L.spot.intensity = cur.o * SPOT_INTENSITY;
+      cur.p = from.p + (to.p - from.p) * k;
+      if (L.spot) {
+        L.spot.color.setRGB(cur.r, cur.g, cur.b);
+        L.spot.intensity = cur.o * SPOT_INTENSITY;
+      }
+      if (L.pool) {
+        L.pool.material.color.setRGB(cur.r, cur.g, cur.b);
+        L.pool.material.opacity = cur.o * (1 - cur.p);
+        L.pool.visible = L.pool.material.opacity > 0.002;
+      }
       const u = L.beam.material.uniforms;
       u.uColor.value.setRGB(cur.r, cur.g, cur.b);
-      u.uOpacity.value = cur.o * BEAM_OPACITY;
+      u.uOpacity.value = cur.o * (L.isBeam ? BEAM_OP * (1 - cur.p) : BEAM_OPACITY);
       u.uTime.value = t;
-      L.beam.visible = cur.o > 0.002;
+      L.beam.visible = u.uOpacity.value > 0.002;
+      if (L.isBeam) {
+        const pu = L.pmat.uniforms;
+        pu.uColor.value.setRGB(cur.r, cur.g, cur.b);
+        pu.uOpacity.value = cur.o * BEAM_OP * 0.32 * cur.p;
+        pu.uTime.value = t;
+        L.spin.visible = pu.uOpacity.value > 0.002;
+        L.spin.rotation.y = t * PRISM_SPEED;
+      }
       L.lens.material.color.setRGB(cur.r, cur.g, cur.b).multiplyScalar(0.05 + cur.o * 4);
     }
     controls.update();
@@ -282,12 +418,12 @@ export function createStage(container, { onToggle, onRow }) {
       Object.assign(L.from, L.cur);
       tmp.set(l.c); // sRGB hex → 선형 색공간
       const o = l.b <= 0 ? 0 : Math.pow(l.b / 100, 1.4);
-      Object.assign(L.to, { r: tmp.r, g: tmp.g, b: tmp.b, o });
+      Object.assign(L.to, { r: tmp.r, g: tmp.g, b: tmp.b, o, p: l.p ? 1 : 0 });
       L.t0 = now;
       L.dur = fade;
 
       const { mark } = marks[i];
-      mark.title = `${ROW_NAMES[Math.floor(i / COLS)]} ${i % COLS + 1}번 · 밝기 ${l.b}%`;
+      mark.title = `${ROW_NAMES[rowOf(i)]} ${colOf(i) + 1}번 · 밝기 ${l.b}%${l.p ? ' · 프리즘' : ''}`;
     });
   }
 

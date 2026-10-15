@@ -1,10 +1,12 @@
-import { createStage } from './stage3d.js?v=5';
+import { createStage } from './stage3d.js?v=6';
 
 /* =========================================================
    상수
    ========================================================= */
-const ROWS = 3, COLS = 6, N = ROWS * COLS;
-const ROW_NAMES = ['뒷줄', '중간줄', '앞줄'];
+// 0~17: 워시 조명 (3줄 x 6), 18~25: 빔 상단 8대, 26~29: 빔 하단(바닥) 4대
+const ROWS = 3, COLS = 6, N_WASH = ROWS * COLS;
+const N_BEAM_TOP = 8, N_BEAM_FLOOR = 4, N = N_WASH + N_BEAM_TOP + N_BEAM_FLOOR;
+const ROW_NAMES = ['뒷줄', '중간줄', '앞줄', '빔 상단', '빔 하단'];
 const SWATCHES = [
   ['#ffffff', '화이트'], ['#ffd59a', '웜화이트'], ['#ff2a2a', '빨강'], ['#ff7a1a', '주황'],
   ['#ffd21a', '노랑'], ['#2aff6a', '초록'], ['#1ae0ff', '시안'], ['#2a5bff', '파랑'],
@@ -20,8 +22,11 @@ const $ = s => document.querySelector(s);
 const $$ = s => Array.from(document.querySelectorAll(s));
 const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
-const rowOf = i => Math.floor(i / COLS);
-const colOf = i => i % COLS;
+const isBeam = i => i >= N_WASH;
+const rowOf = i => i < N_WASH ? Math.floor(i / COLS) : i < N_WASH + N_BEAM_TOP ? 3 : 4;
+const colOf = i => i < N_WASH ? i % COLS : i < N_WASH + N_BEAM_TOP ? i - N_WASH : i - N_WASH - N_BEAM_TOP;
+const WASH_IDX = [...Array(N_WASH).keys()];
+const BEAM_IDX = [...Array(N - N_WASH).keys()].map(i => i + N_WASH);
 
 function el(tag, cls, text) {
   const e = document.createElement(tag);
@@ -72,11 +77,17 @@ function toast(msg) {
 /* =========================================================
    조명 데이터 / 프리셋
    ========================================================= */
-const L = (c, b) => ({ c, b });
-const fill = (c, b) => Array.from({ length: N }, () => L(c, b));
-const cloneLights = ls => ls.map(l => L(l.c, l.b));
+// c: 색, b: 밝기(0~100), p: 프리즘 (빔 조명만 의미 있음)
+const L = (c, b, p = false) => ({ c, b, p });
+// 워시 조명만 c/b로 채우고 빔은 꺼둠
+const fill = (c, b) => Array.from({ length: N }, (_, i) => L(c, isBeam(i) ? 0 : b));
+const cloneLights = ls => ls.map(l => L(l.c, l.b, !!l.p));
 function lightsWhere(pred, c = '#ffffff', b = 100) {
-  return Array.from({ length: N }, (_, i) => pred(rowOf(i), colOf(i)) ? L(c, b) : L(c, 0));
+  return Array.from({ length: N }, (_, i) => !isBeam(i) && pred(rowOf(i), colOf(i)) ? L(c, b) : L(c, 0));
+}
+// 빔 조명만 정의 (워시는 꺼둠). pred(top, k): top=상단 여부, k=그 줄에서 몇 번째
+function beamsWhere(pred, c = '#ffffff', b = 100, p = false) {
+  return Array.from({ length: N }, (_, i) => isBeam(i) && pred(rowOf(i) === 3, colOf(i)) ? L(c, b, p) : L(c, 0));
 }
 
 const BUILTIN_PRESETS = [
@@ -95,6 +106,15 @@ const BUILTIN_PRESETS = [
   { name: '실루엣 (뒷줄만)', make: () => lightsWhere(r => r === 0) },
   { name: '앞줄만', make: () => lightsWhere(r => r === 2) },
 ];
+// 빔 프리셋은 빔 조명만 바꾸고 워시 조명은 그대로 둠
+const BEAM_PRESETS = [
+  { name: '빔 전체', make: () => beamsWhere(() => true) },
+  { name: '빔 상단만', make: () => beamsWhere(top => top) },
+  { name: '빔 하단만', make: () => beamsWhere(top => !top) },
+  { name: '빔 프리즘', make: () => beamsWhere(() => true, '#ffffff', 100, true) },
+  { name: '빔 교차 (짝수)', make: () => beamsWhere((top, k) => k % 2 === 0, '#1ae0ff') },
+  { name: '빔 끄기', make: () => beamsWhere(() => false) },
+];
 
 function normalizeLights(ls) {
   const out = fill('#ffffff', 0);
@@ -104,6 +124,7 @@ function normalizeLights(ls) {
       if (!l) continue;
       if (typeof l.c === 'string' && /^#[0-9a-f]{6}$/i.test(l.c)) out[i].c = l.c.toLowerCase();
       if (typeof l.b === 'number' && isFinite(l.b)) out[i].b = clamp(Math.round(l.b), 0, 100);
+      if (isBeam(i)) out[i].p = !!l.p;
     }
   }
   return out;
@@ -363,7 +384,7 @@ function drawTimeline() {
   list.forEach((c, i) => {
     const x0 = timeToX(c.time, W);
     const x1 = i + 1 < list.length ? timeToX(list[i + 1].time, W) : W;
-    const a = avgLight(c.lights);
+    const a = avgLight(c.lights.slice(0, N_WASH));
     ctx.fillStyle = '#20232c';
     ctx.fillRect(x0, 0, x1 - x0, BAND_H);
     ctx.globalAlpha = 0.25 + 0.75 * (a.b / 100);
@@ -484,11 +505,17 @@ function miniGrid(lights, onPick, sel) {
   const g = el('div', 'mini');
   lights.forEach((l, i) => {
     const d = el('i');
+    // 배치: 1줄 빔 상단(8), 2~4줄 워시(가운데 6칸), 5줄 빔 하단(가운데 4칸)
+    const r = rowOf(i), k = colOf(i);
+    d.style.gridRow = r === 3 ? 1 : r === 4 ? 5 : r + 2;
+    d.style.gridColumn = r === 3 ? k + 1 : r === 4 ? k + 3 : k + 2;
+    if (isBeam(i)) d.classList.add('beam');
+    if (l.p && l.b) d.classList.add('prism');
     if (l.b) { d.style.background = l.c; d.style.opacity = 0.3 + 0.7 * l.b / 100; }
     else { d.style.background = '#3a3d47'; d.style.opacity = 0.5; }
     if (sel && sel.has(i)) d.classList.add('sel');
     if (onPick) {
-      d.title = `${ROW_NAMES[rowOf(i)]} ${colOf(i) + 1}번 · 밝기 ${l.b}%`;
+      d.title = `${ROW_NAMES[r]} ${k + 1}번 · 밝기 ${l.b}%${l.p ? ' · 프리즘' : ''}`;
       d.addEventListener('click', e => { e.stopPropagation(); onPick(i); });
     }
     g.append(d);
@@ -590,7 +617,7 @@ function lightsChanged() {
 }
 
 function targets() {
-  return state.selected.size ? [...state.selected] : [...Array(N).keys()];
+  return state.selected.size ? [...state.selected] : WASH_IDX;
 }
 
 function renderSelection() {
@@ -599,9 +626,11 @@ function renderSelection() {
   const n = state.selected.size;
   $('#selInfo').textContent = n
     ? `선택한 조명 ${n}개에 적용돼요. (무대 조명이나 섹션 목록의 점을 눌러 선택/해제)`
-    : '선택 없음 → 전체 조명에 적용돼요. 무대 조명이나 섹션 목록의 점을 눌러 일부만 고를 수 있어요.';
+    : '선택 없음 → 워시 조명 전체에 적용돼요. 빔 조명은 직접 골라야 해요.';
   const cue = activeCue();
   if (!cue) return;
+  const pb = prismTargets();
+  $('#btnPrism').classList.toggle('on', pb.length > 0 && pb.every(i => cue.lights[i].p));
   const first = cue.lights[targets()[0]];
   const bri = $('#bri');
   if (document.activeElement !== bri) { bri.value = first.b; }
@@ -621,9 +650,12 @@ const GROUPS = {
   r0: i => rowOf(i) === 0,
   r1: i => rowOf(i) === 1,
   r2: i => rowOf(i) === 2,
-  left: i => colOf(i) < 2,
-  center: i => colOf(i) === 2 || colOf(i) === 3,
-  right: i => colOf(i) > 3,
+  r3: i => rowOf(i) === 3,
+  r4: i => rowOf(i) === 4,
+  beam: isBeam,
+  left: i => !isBeam(i) && colOf(i) < 2,
+  center: i => !isBeam(i) && (colOf(i) === 2 || colOf(i) === 3),
+  right: i => !isBeam(i) && colOf(i) > 3,
 };
 function selectGroup(key) {
   state.selected = new Set([...Array(N).keys()].filter(GROUPS[key]));
@@ -640,6 +672,23 @@ function setColor(hex) {
   lightsChanged();
 }
 
+// 프리즘 대상: 선택한 빔, 아무것도 선택 안 했으면 빔 전체
+function prismTargets() {
+  return state.selected.size ? [...state.selected].filter(isBeam) : BEAM_IDX;
+}
+function togglePrism() {
+  const cue = activeCue();
+  if (!cue) return;
+  const t = prismTargets();
+  if (!t.length) { toast('프리즘은 빔 조명에만 쓸 수 있어요'); return; }
+  const on = !t.every(i => cue.lights[i].p);
+  for (const i of t) {
+    cue.lights[i].p = on;
+    if (on && !cue.lights[i].b) cue.lights[i].b = 100;
+  }
+  lightsChanged();
+}
+
 function setBrightness(b) {
   const cue = activeCue();
   if (!cue) return;
@@ -647,18 +696,24 @@ function setBrightness(b) {
   lightsChanged();
 }
 
-function applyPreset(lights) {
+// only: 'wash' / 'beam'이면 그 조명만 바꿈, 없으면 전체
+function applyPreset(lights, only) {
   const cue = activeCue();
   if (!cue) { toast('먼저 섹션을 추가하세요'); return; }
-  cue.lights = cloneLights(lights);
+  const next = cloneLights(lights);
+  if (only) {
+    const keep = only === 'wash' ? isBeam : i => !isBeam(i);
+    next.forEach((l, i) => { if (keep(i)) next[i] = cue.lights[i]; });
+  }
+  cue.lights = next;
   lightsChanged();
 }
 
-function presetButton(name, lights, onRemove) {
+function presetButton(name, lights, onRemove, only) {
   const b = el('button', 'preset');
   b.append(miniGrid(lights), el('span', null, name));
   b.title = `"${name}" 적용`;
-  b.addEventListener('click', () => applyPreset(lights));
+  b.addEventListener('click', () => applyPreset(lights, only));
   if (onRemove) {
     const x = el('span', 'x', '✕');
     x.title = '프리셋 삭제';
@@ -670,7 +725,8 @@ function presetButton(name, lights, onRemove) {
 
 function buildPresets() {
   const g = $('#presetGrid');
-  for (const p of BUILTIN_PRESETS) g.append(presetButton(p.name, p.make()));
+  for (const p of BUILTIN_PRESETS) g.append(presetButton(p.name, p.make(), null, 'wash'));
+  for (const p of BEAM_PRESETS) $('#beamPresetGrid').append(presetButton(p.name, p.make(), null, 'beam'));
   const sw = $('#swatches');
   for (const [hex, name] of SWATCHES) {
     const b = el('button', 'swatch');
@@ -719,6 +775,7 @@ async function openProject(id) {
   const p = state.projects.find(p => p.id === id);
   if (!p) return;
   state.project = p;
+  for (const c of p.cues) if (c.lights.length !== N) c.lights = normalizeLights(c.lights);
   sortCues();
   try { localStorage.setItem('lightcue.last', id); } catch { /* 무시 */ }
   state.activeCueId = undefined;
@@ -984,6 +1041,7 @@ function bindEvents() {
   // 조명 조정
   $$('[data-sel]').forEach(b => b.addEventListener('click', () => selectGroup(b.dataset.sel)));
   $$('[data-bri]').forEach(b => b.addEventListener('click', () => setBrightness(+b.dataset.bri)));
+  $('#btnPrism').addEventListener('click', togglePrism);
   $('#bri').addEventListener('input', e => { $('#briVal').textContent = e.target.value; setBrightness(+e.target.value); });
   $('#colorPick').addEventListener('input', e => setColor(e.target.value));
 

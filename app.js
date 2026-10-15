@@ -1,4 +1,4 @@
-import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=31';
+import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=32';
 
 /* =========================================================
    상수
@@ -1159,8 +1159,7 @@ function applyFormation(key) {
   renderStage(currentLights(), 0.15);
   save();
 }
-// 지금보다 앞에 있는 배치 중, 지금 배치와 다른 가장 가까운 배치를 복사
-// (같은 섹션의 앞 동선 → 시작 배치 → 앞 섹션들 순서로 거슬러 올라감)
+// 타임라인 '동선' 줄에서 지금 배치(○ 또는 ◆) 바로 앞에 있는 배치를 복사
 function copyPrevFormation() {
   const cue = activeCue();
   if (!cue) { toast('먼저 섹션을 추가하세요'); return; }
@@ -1175,8 +1174,10 @@ function copyPrevFormation() {
   }
   const idx = all.findIndex(f => f.key === key);
   const same = (a, b) => a.slice(0, n).every((p, i) => p[0] === b[i][0] && p[1] === b[i][1]);
-  const prev = all.slice(0, idx).reverse().find(f => !same(f.pos, target));
-  if (!prev) { toast(idx > 0 ? '앞 배치들이 지금 배치와 같아요' : '앞에 있는 배치가 없어요'); return; }
+  const prev = idx > 0 ? all[idx - 1] : null;
+  if (!prev) { toast('앞에 있는 배치가 없어요'); return; }
+  const josa = prev.label.endsWith('동선') ? '과' : '와';
+  if (same(prev.pos, target)) { toast(`바로 앞 ${prev.label}${josa} 이미 같아요`); return; }
   target.splice(0, MAX_DANCERS, ...prev.pos.map(p => p.slice()));
   state.danceKey = null;
   renderStage(currentLights(), 0.15);
@@ -1304,8 +1305,17 @@ function addCue() {
     fade: DEFAULT_FADE,
     lights: base ? cloneLights(base.lights) : fill('#ffffff', 50),
     front: frontOf(base),
-    pos: normalizePos(base && base.pos),
+    pos: normalizePos(base ? currentPos().map(p => p.slice()) : null),
   };
+  // 나눠진 섹션의 뒤쪽 ◆ 동선은 새 섹션으로 옮김
+  if (base && base.steps) {
+    const after = base.steps.filter(st => st.t > t);
+    if (after.length) {
+      cue.steps = after;
+      base.steps = base.steps.filter(st => st.t <= t);
+      if (!base.steps.length) delete base.steps;
+    }
+  }
   state.project.cues.push(cue);
   sortCues();
   save();

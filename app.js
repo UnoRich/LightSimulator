@@ -1,4 +1,4 @@
-import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=28';
+import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=29';
 
 /* =========================================================
    상수
@@ -484,8 +484,59 @@ function newProjectData(name = DEFAULT_NAME) {
 }
 
 let saveTimer;
+/* ---------- 되돌리기 (Ctrl/Cmd+Z, 다시 하기 Ctrl/Cmd+Shift+Z 또는 Ctrl+Y) ----------
+   저장할 때마다 바로 전 상태를 쌓아 둠. 0.8초 안에 이어진 저장(이름 입력, 슬라이더 등)은 한 번으로 묶음 */
+const UNDO_MAX = 100;
+const hist = { undo: [], redo: [], last: null, lastPush: 0 };
+const snapshot = p => JSON.stringify({ name: p.name, cues: p.cues, dancerCount: p.dancerCount, names: p.names });
+function resetHistory() {
+  hist.undo = []; hist.redo = [];
+  hist.last = state.project ? snapshot(state.project) : null;
+}
+function recordHistory() {
+  const now = snapshot(state.project);
+  if (now === hist.last) return;
+  if (Date.now() - hist.lastPush > 800 || !hist.undo.length) {
+    hist.undo.push(hist.last);
+    if (hist.undo.length > UNDO_MAX) hist.undo.shift();
+  }
+  hist.lastPush = Date.now();
+  hist.redo = [];
+  hist.last = now;
+}
+function restoreSnapshot(json) {
+  const p = state.project, d = JSON.parse(json);
+  Object.assign(p, { name: d.name, cues: d.cues, dancerCount: d.dancerCount, names: d.names, updatedAt: Date.now() });
+  hist.last = json;
+  hist.lastPush = 0;
+  state.activeCueId = undefined;
+  state.danceKey = null;
+  formDrag = null;
+  clearTimeout(saveTimer);
+  DB.putProject(p).catch(e => toast('저장 실패: ' + e.message));
+  renderProjectSelect();
+  syncToPlayhead(false);
+  renderStage(currentLights(), 0.15);
+  renderCueList();
+  renderEditor();
+  drawTimeline();
+}
+function undo() {
+  if (!state.project || !hist.undo.length) { toast('되돌릴 작업이 없어요'); return; }
+  hist.redo.push(snapshot(state.project));
+  restoreSnapshot(hist.undo.pop());
+  toast('되돌렸어요');
+}
+function redo() {
+  if (!state.project || !hist.redo.length) { toast('다시 할 작업이 없어요'); return; }
+  hist.undo.push(snapshot(state.project));
+  restoreSnapshot(hist.redo.pop());
+  toast('다시 했어요');
+}
+
 function save() {
   if (!state.project) return;
+  recordHistory();
   state.project.updatedAt = Date.now();
   const p = state.project;
   clearTimeout(saveTimer);
@@ -1462,6 +1513,7 @@ async function openProject(id) {
   }
   if (!Number.isInteger(p.dancerCount)) p.dancerCount = DEFAULT_DANCERS;
   sortCues();
+  resetHistory();
   try { localStorage.setItem('lightcue.last', id); } catch { /* 무시 */ }
   state.activeCueId = undefined;
   renderProjectSelect();
@@ -1774,6 +1826,8 @@ function bindEvents() {
   // 키보드
   document.addEventListener('keydown', e => {
     if (e.target.closest('input, textarea, select') && e.target.type !== 'range') return;
+    if ((e.metaKey || e.ctrlKey) && !e.altKey && e.code === 'KeyZ') { e.preventDefault(); e.shiftKey ? redo() : undo(); return; }
+    if (e.ctrlKey && !e.altKey && e.code === 'KeyY') { e.preventDefault(); redo(); return; }
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     if (tlHover.on && !state.showMode && timelineKey(e.code)) { e.preventDefault(); return; }
     if (e.code === 'Space') {

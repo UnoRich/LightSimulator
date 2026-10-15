@@ -1,6 +1,6 @@
-import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=52';
-import { GIRLS_DEMO, GIRLS_DEMO_NAMES, GIRLS_DEMO_COUNT } from './demo-girls.js?v=52';
-import { DRILL_DEMO, DRILL_DEMO_NAMES, DRILL_DEMO_COUNT } from './demo-drill.js?v=52';
+import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=53';
+import { GIRLS_DEMO, GIRLS_DEMO_NAMES, GIRLS_DEMO_COUNT } from './demo-girls.js?v=53';
+import { DRILL_DEMO, DRILL_DEMO_NAMES, DRILL_DEMO_COUNT } from './demo-drill.js?v=53';
 
 /* =========================================================
    상수
@@ -15,6 +15,7 @@ const SWATCHES = [
   ['#8a2aff', '보라'], ['#ff2ad0', '핑크'],
 ];
 const DEFAULT_FADE = 0.5;
+const GUIDE_VIDEO = 'media/guide.mp4';
 
 const DEFAULT_NAME = '새 공연';
 
@@ -1766,12 +1767,29 @@ function bindEvents() {
   $$('[data-bri]').forEach(b => b.addEventListener('click', () => setBrightness(+b.dataset.bri)));
   // 데모 버튼 (데모마다 하나씩)
   Object.entries(DEMOS).forEach(([key, d], i) => {
-    const b = el('button', 'demo-btn', `🎬 데모 ${i + 1} ${d.title}`);
+    const b = el('button', 'demo-btn', `${i + 1} ${d.title}`);
     b.dataset.demo = key;
     b.title = `${d.song} · ${d.dancers}명 · ${fmt(d.duration).replace(/\.\d$/, '')}`;
     b.addEventListener('click', () => openDemo(key));
     $('#demoBtns').append(b);
   });
+  // 공연 관리 메뉴 (⋯)
+  const pm = $('#projMenu');
+  $('#btnProjMenu').addEventListener('click', e => { e.stopPropagation(); pm.hidden = !pm.hidden; });
+  pm.addEventListener('click', () => { pm.hidden = true; });
+  document.addEventListener('click', e => { if (!pm.hidden && !e.target.closest('.menu-wrap')) pm.hidden = true; });
+  // 사용법 영상 팝업
+  const gm = $('#guideModal'), gv = $('#guideVideo');
+  $('#btnGuide').addEventListener('click', () => {
+    if (!gv.getAttribute('src')) gv.src = GUIDE_VIDEO;
+    audio.pause();
+    gm.showModal();
+    gv.play().catch(() => {});
+  });
+  gv.addEventListener('error', () => { $('#guideEmpty').hidden = false; });
+  $('#guideClose').addEventListener('click', () => gm.close());
+  gm.addEventListener('click', e => { if (e.target === gm) gm.close(); }); // 바깥(어두운 곳) 클릭으로 닫기
+  gm.addEventListener('close', () => gv.pause());
   $('#btnPrism').addEventListener('click', () => toggleBeamFlag('p', '프리즘'));
   $('#btnFocus').addEventListener('click', () => toggleBeamFlag('f', '센터 모으기'));
   $('#btnMove').addEventListener('click', () => toggleBeamFlag('m', '무빙'));
@@ -1801,6 +1819,7 @@ function bindEvents() {
 
   // 키보드
   document.addEventListener('keydown', e => {
+    if ($('#guideModal').open) return; // 사용법 영상 보는 중에는 단축키 끄기
     if (e.target.closest('input, textarea, select') && e.target.type !== 'range') return;
     if ((e.metaKey || e.ctrlKey) && !e.altKey && e.code === 'KeyZ') { e.preventDefault(); e.shiftKey ? redo() : undo(); return; }
     if (e.ctrlKey && !e.altKey && e.code === 'KeyY') { e.preventDefault(); redo(); return; }

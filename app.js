@@ -1,6 +1,6 @@
-import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=45';
-import { GIRLS_DEMO } from './demo-girls.js?v=45';
-import { DRILL_DEMO } from './demo-drill.js?v=45';
+import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=46';
+import { GIRLS_DEMO } from './demo-girls.js?v=46';
+import { DRILL_DEMO } from './demo-drill.js?v=46';
 
 /* =========================================================
    상수
@@ -209,7 +209,7 @@ const DEMOS = {
   drill: { title: '힙합 드릴', name: '데모: 힙합 드릴', song: 'BAND4BAND (Central Cee ft. Lil Baby)',
     duration: 151.2, version: 11, dancers: 11, music: 'Demo music/Demo1/music', make: makeDrillCues },
   girls: { title: '걸스 스타일', name: '데모: 걸스 스타일', song: 'CHAT (GIRLSET)',
-    duration: 172.7, version: 10, dancers: 6, names: GIRLS_NAMES, music: 'Demo music/Demo2/music', make: makeGirlsCues },
+    duration: 172.7, version: 11, dancers: 6, names: GIRLS_NAMES, music: 'Demo music/Demo2/music', make: makeGirlsCues },
 };
 const demoKey = p => p && p.demo ? (p.demo.id || 'drill') : null;
 function newDemoProject(key) {

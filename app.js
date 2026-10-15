@@ -1,4 +1,4 @@
-import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=14';
+import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=15';
 
 /* =========================================================
    상수
@@ -177,7 +177,7 @@ const BEAM_PRESETS = [
    (암전에서 시작해 서서히 밝아지는 인트로 → 0:14 드롭)
    노래 파일은 포함하지 않음 → 무음으로 조명만 재생, 파일을 올리면 같이 재생
    ========================================================= */
-const DEMO = { name: '데모: 힙합 드릴 ~1:40', duration: 100, song: 'BAND4BAND (Central Cee ft. Lil Baby)', version: 5, dancers: 11 };
+const DEMO = { name: '데모: 힙합 드릴 ~1:40', duration: 100, song: 'BAND4BAND (Central Cee ft. Lil Baby)', version: 6, dancers: 11 };
 function makeDemoCues() {
   // 여러 워시 레이어 합치기: 같은 조명은 앞쪽 레이어 우선
   const layer = (...ws) => ws[0].map((l, i) => ws.map(w => w[i]).find(x => x.b) || L('#ffffff', 0));
@@ -221,15 +221,10 @@ function makeDemoCues() {
     C(56.63, '벌스 2 - 빨간 실루엣', 0, mix(W.rows([0], RED, 100), B.floor(RED)), 0),
     C(62.23, '벌스 2 - 웜', 0.5, mix(W.all(WARM, 50), B.top(WARM, 80)), 50),
     C(69.06, '훅 2', 0, mix(W.all(BLUE, 100), B.all(WHITE))),
-    C(72.49, '훅 2 - 핑크 교차', 0.1, mix(W.all(BLUE, 80), B.alt(PINK))),
     C(75.88, '훅 2 - 핑크 프리즘', 0.1, mix(W.all(PINK, 70), B.all(WHITE, 100, true))),
-    C(79.34, '왼쪽', 0.1, mix(W.cols([0, 1], WHITE, 100), B.top(CYAN))),
-    C(81.08, '오른쪽', 0.1, mix(W.cols([4, 5], WHITE, 100), B.top(CYAN))),
-    C(82.78, '가운데', 0.1, mix(W.cols([2, 3], WHITE, 100), B.all(WHITE, 100, true))),
+    C(79.34, '좌우 스팟', 0.1, mix(W.cols([0, 1, 4, 5], WHITE, 100), B.top(CYAN))),
     C(86.22, '빨강 + 바닥 빔', 0, mix(W.all(RED, 80), B.top(WHITE), B.floor(RED))),
-    C(89.63, '화이트 빔', 0.1, mix(W.all(WHITE, 40), B.all(WHITE))),
     C(93.09, '보라 프리즘', 0.1, mix(W.all(PURPLE, 80), B.all(WHITE, 100, true))),
-    C(96.41, '빨강 풀', 0, mix(W.all(RED, 100), B.all(WHITE))),
     C(98.13, '마무리 풀 화이트', 0, mix(W.all(WHITE, 100), B.all(WHITE, 100, true))),
     C(100, '엔딩 암전', 2, mix(W.off(), B.off()), 0),
   ];
@@ -243,9 +238,8 @@ function makeDemoCues() {
     [0, back], [12.24, F.clump.make(n)], [14.05, F.v.make(n)], [22.78, F.rows.make(n)],
     [28.0, solo], [29.84, tri], [41.66, grid], [48.51, F.circle.make(n)], [53.64, F.v.make(n)],
     [55.36, F.clump.make(n)], [56.63, back], [62.23, F.rows.make(n)], [69.06, tri], [72.49, grid],
-    [75.88, F.invV.make(n)], [79.34, F.clump.make(n, -3.4, 0.5)], [81.08, F.clump.make(n, 3.4, 0.5)],
-    [82.78, F.clump.make(n, 0, 0.3)], [86.22, grid], [89.63, F.line.make(n, 2.0)], [93.09, F.circle.make(n)],
-    [96.41, F.v.make(n)], [98.13, tri],
+    [75.88, F.invV.make(n)], [79.34, [...F.clump.make(6, -3.4, 0.5), ...F.clump.make(5, 3.4, 0.5)]],
+    [86.22, grid], [93.09, F.circle.make(n)], [98.13, tri],
   ];
   let cur = back;
   for (const c of list) {

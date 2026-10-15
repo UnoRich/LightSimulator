@@ -1,6 +1,6 @@
-import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=48';
-import { GIRLS_DEMO } from './demo-girls.js?v=48';
-import { DRILL_DEMO } from './demo-drill.js?v=48';
+import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=49';
+import { GIRLS_DEMO } from './demo-girls.js?v=49';
+import { DRILL_DEMO } from './demo-drill.js?v=49';
 
 /* =========================================================
    상수
@@ -950,11 +950,15 @@ function deleteStep() {
   syncToPlayhead(false);
   drawTimeline();
 }
+// 입력칸에 들어간 순간의 편집 대상 (다른 섹션/동선을 눌러도 원래 대상에 반영되게)
+const editing = { cueId: null, moveKey: null };
+const editingCue = () => cues().find(c => c.id === editing.cueId) || activeCue();
 function setMoveTime(v) {
-  const cue = activeCue();
+  const key = editing.moveKey || dancerTarget().key;
+  const cue = cues().find(c => c.id === key.split(':')[0]);
   if (!cue) return;
-  const key = dancerTarget().key;
-  const target = key.includes(':') ? cue.steps[+key.split(':')[1]] : cue;
+  const target = key.includes(':') ? cue.steps && cue.steps[+key.split(':')[1]] : cue;
+  if (!target) return;
   const n = parseFloat(v);
   if (isFinite(n) && n > 0) target.move = clamp(n, 0.3, 10); else delete target.move;
   save();
@@ -1719,19 +1723,26 @@ function bindEvents() {
   $('#fileImport').addEventListener('change', e => { if (e.target.files[0]) importFile(e.target.files[0]); e.target.value = ''; });
 
   // 섹션 편집
+  // 섹션 편집 입력칸: 들어간 순간의 섹션을 기억해 두고 그 섹션에 반영
+  for (const id of ['#cueName', '#cueTime', '#cueFade']) {
+    $(id).addEventListener('focus', () => { editing.cueId = activeCue() ? activeCue().id : null; });
+    $(id).addEventListener('blur', () => { setTimeout(() => { editing.cueId = null; renderEditor(); }, 0); });
+  }
+  $('#formMove').addEventListener('focus', () => { editing.moveKey = activeCue() ? dancerTarget().key : null; });
+  $('#formMove').addEventListener('blur', () => { setTimeout(() => { editing.moveKey = null; renderSteps(); }, 0); });
   $('#cueName').addEventListener('input', e => {
-    const c = activeCue(); if (!c) return;
+    const c = editingCue(); if (!c) return;
     c.name = e.target.value;
     save(); renderCueList(); renderHud(); drawTimeline();
   });
   $('#cueTime').addEventListener('change', e => {
-    const c = activeCue(); if (!c) return;
+    const c = editingCue(); if (!c) return;
     const t = parseTime(e.target.value);
     if (t == null) { toast('시간 형식: 1:23.4 또는 83.4'); e.target.value = fmt(c.time); return; }
     c.time = clamp(t, 0, duration() || t);
     sortCues(); save();
-    e.target.blur();
-    seek(c.time);
+    // 다른 섹션을 눌러서 끝난 입력이면 그쪽 선택은 그대로 두기
+    if (c === activeCue()) { e.target.blur(); seek(c.time); } else { renderCueList(); drawTimeline(); }
   });
   $('#btnCueHere').addEventListener('click', () => {
     const c = activeCue(); if (!c) return;
@@ -1739,10 +1750,10 @@ function bindEvents() {
     sortCues(); save(); renderCueList(); renderEditor(); drawTimeline();
   });
   $('#cueFade').addEventListener('change', e => {
-    const c = activeCue(); if (!c) return;
+    const c = editingCue(); if (!c) return;
     c.fade = clamp(parseFloat(e.target.value) || 0, 0, 10);
-    e.target.value = c.fade;
     save();
+    renderCueList();
   });
   $('#btnCueDelete').addEventListener('click', () => { const c = activeCue(); if (c) deleteCue(c.id); });
 

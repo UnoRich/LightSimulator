@@ -1,6 +1,6 @@
-import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=54';
-import { GIRLS_DEMO, GIRLS_DEMO_NAMES, GIRLS_DEMO_COUNT } from './demo-girls.js?v=54';
-import { DRILL_DEMO, DRILL_DEMO_NAMES, DRILL_DEMO_COUNT } from './demo-drill.js?v=54';
+import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=55';
+import { GIRLS_DEMO, GIRLS_DEMO_NAMES, GIRLS_DEMO_COUNT } from './demo-girls.js?v=55';
+import { DRILL_DEMO, DRILL_DEMO_NAMES, DRILL_DEMO_COUNT } from './demo-drill.js?v=55';
 
 /* =========================================================
    상수
@@ -1455,15 +1455,18 @@ function renderCustomPresets() {
    ========================================================= */
 function renderProjectSelect() {
   $$('.demo-btn').forEach(b => b.classList.toggle('on', demoKey(state.project) === b.dataset.demo));
-  const s = $('#projectSelect');
-  s.textContent = '';
+  // 공연 이름 (누르면 수정), ⇅ 목록, ✕ 삭제 (데모 공연은 삭제 버튼 숨김)
+  if (!$('#projName').querySelector('input')) $('#projName').textContent = state.project ? state.project.name || DEFAULT_NAME : '';
+  $('#btnDeleteProject').hidden = !state.project || !!state.project.demo;
+  const box = $('#projList');
+  box.textContent = '';
   const list = state.projects.slice().sort((a, b) => b.updatedAt - a.updatedAt);
   for (const p of list) {
-    const o = el('option', null, p.name || DEFAULT_NAME);
-    o.value = p.id;
-    s.append(o);
+    const b = el('button', p === state.project ? 'on' : null, p.name || DEFAULT_NAME);
+    if (p.demo) b.append(el('small', 'muted', ' 데모'));
+    b.addEventListener('click', () => { box.hidden = true; if (p !== state.project) openProject(p.id); });
+    box.append(b);
   }
-  if (state.project) s.value = state.project.id;
 }
 
 async function openProject(id) {
@@ -1557,18 +1560,35 @@ async function createProject() {
   await openProject(p.id);
 }
 
-function renameProject() {
-  if (!state.project) return;
-  const name = prompt('공연 이름', state.project.name);
-  if (name == null) return;
-  state.project.name = name.trim() || DEFAULT_NAME;
-  save();
-  renderProjectSelect();
+// 공연 이름 그 자리에서 바꾸기 (Enter/바깥 클릭 = 저장, Esc = 취소)
+function renameProjectInline() {
+  const p = state.project, span = $('#projName');
+  if (!p || span.querySelector('input')) return;
+  const input = el('input', 'proj-edit');
+  input.value = p.name || '';
+  input.maxLength = 40;
+  span.textContent = '';
+  span.append(input);
+  input.focus(); input.select();
+  let done = false;
+  const finish = ok => {
+    if (done) return;
+    done = true;
+    if (ok) { p.name = input.value.trim() || DEFAULT_NAME; save(); }
+    span.textContent = '';
+    renderProjectSelect();
+  };
+  input.addEventListener('keydown', e => {
+    e.stopPropagation();
+    if (e.key === 'Enter') finish(true);
+    else if (e.key === 'Escape') finish(false);
+  });
+  input.addEventListener('blur', () => finish(true));
 }
 
 async function deleteProject() {
   const p = state.project;
-  if (!p) return;
+  if (!p || p.demo) return;
   if (!confirm(`"${p.name}" 공연을 삭제할까요?\n노래와 모든 섹션이 이 브라우저에서 지워져요.`)) return;
   clearTimeout(saveTimer);
   await DB.delProject(p.id);
@@ -1716,10 +1736,12 @@ function bindEvents() {
     $(id).addEventListener('change', e => { loadAudioFile(e.target.files[0]); e.target.value = ''; });
   }
 
-  $('#projectSelect').addEventListener('change', e => openProject(e.target.value));
   $('#btnNewProject').addEventListener('click', createProject);
-  $('#btnRename').addEventListener('click', renameProject);
+  $('#projName').addEventListener('click', renameProjectInline);
   $('#btnDeleteProject').addEventListener('click', deleteProject);
+  const pl = $('#projList');
+  $('#btnProjList').addEventListener('click', e => { e.stopPropagation(); pl.hidden = !pl.hidden; });
+  document.addEventListener('click', e => { if (!pl.hidden && !e.target.closest('.proj-box')) pl.hidden = true; });
   $('#btnExport').addEventListener('click', exportProject);
   $('#btnImport').addEventListener('click', () => $('#fileImport').click());
   $('#fileImport').addEventListener('change', e => { if (e.target.files[0]) importFile(e.target.files[0]); e.target.value = ''; });
@@ -1773,11 +1795,6 @@ function bindEvents() {
     b.addEventListener('click', () => openDemo(key));
     $('#demoBtns').append(b);
   });
-  // 공연 관리 메뉴 (⋯)
-  const pm = $('#projMenu');
-  $('#btnProjMenu').addEventListener('click', e => { e.stopPropagation(); pm.hidden = !pm.hidden; });
-  pm.addEventListener('click', () => { pm.hidden = true; });
-  document.addEventListener('click', e => { if (!pm.hidden && !e.target.closest('.menu-wrap')) pm.hidden = true; });
   // 사용법 영상 팝업
   const gm = $('#guideModal'), gv = $('#guideVideo');
   $('#btnGuide').addEventListener('click', () => {

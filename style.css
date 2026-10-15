@@ -68,7 +68,20 @@ kbd {
 .btn-link:hover { border-color: #444a59; background: #252935; }
 .btn-link .ico { color: #4f9bff; }
 .tb-group, .io-bar { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
-.project-bar select { max-width: 200px; }
+.proj-box {
+  position: relative; display: inline-flex; align-items: center; gap: 2px;
+  background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 2px 4px 2px 10px;
+}
+.proj-name { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: text; padding: 4px 4px 4px 0; }
+.proj-name:hover { text-decoration: underline dotted; text-underline-offset: 3px; }
+.proj-edit { width: 200px; padding: 3px 6px; font: inherit; background: var(--bg); border: 1px solid var(--primary); border-radius: 6px; }
+.proj-ico { display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border: none; background: transparent; color: var(--muted); border-radius: 6px; }
+.proj-ico:hover { background: #2a2e3a; color: var(--text); }
+.proj-del:hover { color: var(--danger); }
+.proj-ico[hidden] { display: none; }
+.proj-list { min-width: 240px; max-height: 320px; overflow-y: auto; }
+.proj-list button { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.proj-list button.on { color: var(--accent); }
 .io-bar { margin-left: auto; }
 .tb-label { font-size: 12px; color: var(--muted); font-weight: 600; }
 /* 붙어 있는 버튼 묶음 */

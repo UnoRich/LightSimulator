@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>LightSimulator - D.strict416</title>
   <meta name="description" content="댄스 공연용 조명 큐 시뮬레이터 — 노래에 맞춰 섹션별 조명을 미리 짜고 조명감독에게 보여주세요.">
-  <link rel="stylesheet" href="style.css?v=54">
+  <link rel="stylesheet" href="style.css?v=55">
 </head>
 <body>
   <header class="topbar">
@@ -13,15 +13,13 @@
       <a class="brand-ig" href="https://www.instagram.com/d.strict416" target="_blank" rel="noopener" title="Instagram @d.strict416"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="4.2" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="17.4" cy="6.6" r="1.3" fill="currentColor"/></svg>D.strict416</a>
     </div>
     <div class="tb-group project-bar">
-      <select id="projectSelect" aria-label="공연 선택"></select>
-      <div class="menu-wrap">
-        <button id="btnProjMenu" class="icon-btn" title="공연 관리 (새 공연 · 이름 변경 · 삭제)" aria-haspopup="true">⋯</button>
-        <div class="pop-menu" id="projMenu" hidden>
-          <button id="btnNewProject">+ 새 공연</button>
-          <button id="btnRename">이름 변경</button>
-          <button id="btnDeleteProject" class="danger">공연 삭제</button>
-        </div>
+      <div class="proj-box">
+        <span class="proj-name" id="projName" title="눌러서 공연 이름 바꾸기"></span>
+        <button id="btnProjList" class="proj-ico" title="공연 목록" aria-haspopup="true"><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M7 10l5-5 5 5M7 14l5 5 5-5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <button id="btnDeleteProject" class="proj-ico proj-del" title="이 공연 삭제">✕</button>
+        <div class="pop-menu proj-list" id="projList" hidden></div>
       </div>
+      <button id="btnNewProject" title="새 공연 만들기">+ 새 공연</button>
     </div>
     <div class="tb-group demo-group">
       <span class="tb-label">🎬 데모</span>
@@ -220,6 +218,6 @@
       }
     }
   </script>
-  <script type="module" src="app.js?v=54"></script>
+  <script type="module" src="app.js?v=55"></script>
 </body>
 </html>

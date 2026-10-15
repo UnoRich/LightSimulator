@@ -1,4 +1,4 @@
-import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=18';
+import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=19';
 
 /* =========================================================
    상수
@@ -178,8 +178,8 @@ const BEAM_PRESETS = [
    (암전에서 시작해 서서히 밝아지는 인트로 → 0:14 드롭)
    노래 파일은 포함하지 않음 → 무음으로 조명만 재생, 파일을 올리면 같이 재생
    ========================================================= */
-const DEMO = { name: '데모: 힙합 드릴 ~1:40', duration: 100, song: 'BAND4BAND (Central Cee ft. Lil Baby)', version: 7, dancers: 11 };
-function makeDemoCues() {
+// 데모 큐를 짤 때 쓰는 도구 모음
+function demoKit() {
   // 여러 워시 레이어 합치기: 같은 조명은 앞쪽 레이어 우선
   const layer = (...ws) => ws[0].map((l, i) => ws.map(w => w[i]).find(x => x.b) || L('#ffffff', 0));
   const W = {
@@ -195,15 +195,21 @@ function makeDemoCues() {
     top: (c, b = 100, p = false, f = false) => beamsWhere(top => top, c, b, p, f),
     floor: (c, b = 100, p = false) => beamsWhere(top => !top, c, b, p),
     alt: (c, b = 100, p = false) => beamsWhere((top, k) => top && k % 2 === 0, c, b, p),
+    all2: (c, b = 100, p = false, f = false) => beamsWhere(() => true, c, b, p, f),
   };
   // 워시 + 빔(여러 개면 켜진 쪽 우선) 합치기
   const mix = (wash, ...beams) => wash.map((l, i) => {
     if (!isBeam(i)) return l;
     return beams.map(bs => bs[i]).find(x => x.b) || L('#ffffff', 0);
   });
-  const WHITE = '#ffffff', BLUE = '#2a5bff', CYAN = '#1ae0ff', PURPLE = '#8a2aff',
-    RED = '#ff2a2a', PINK = '#ff2ad0', WARM = '#ffd59a';
   const C = (time, name, fade, lights, front = 100) => ({ id: uid(), time, name, fade, lights, front });
+  const COLORS = { WHITE: '#ffffff', BLUE: '#2a5bff', CYAN: '#1ae0ff', PURPLE: '#8a2aff', RED: '#ff2a2a',
+    PINK: '#ff2ad0', WARM: '#ffd59a', LAV: '#6a7cff' };
+  return { layer, W, B, mix, C, ...COLORS };
+}
+
+function makeDrillCues() {
+  const { layer, W, B, mix, C, WHITE, BLUE, CYAN, PURPLE, RED, PINK, WARM } = demoKit();
   const list = [
     C(0, '암전', 0, mix(W.off(), B.off()), 0),
     C(1.81, '페이드 인 1 - 뒷줄 희미하게', 3, mix(W.rows([0], BLUE, 15), B.off()), 0),
@@ -230,7 +236,7 @@ function makeDemoCues() {
     C(100, '엔딩 암전', 2, mix(W.off(), B.off()), 0),
   ];
   // 11명 대형: 해당 시각부터 다음 지정 시각까지 유지
-  const n = DEMO.dancers, F = FORMATIONS;
+  const n = 11, F = FORMATIONS;
   const back = F.line.make(n, -2.6);
   const grid = [...spread(4, 4.5).map(x => [x, 1.4]), ...spread(3, 3).map(x => [x, 0]), ...spread(4, 4.5).map(x => [x, -1.4])];
   const tri = [[0, 2.4], ...spread(2, 1.4).map(x => [x, 1.3]), ...spread(3, 2.8).map(x => [x, 0.2]), ...spread(5, 5.6).map(x => [x, -0.9])];
@@ -250,22 +256,121 @@ function makeDemoCues() {
   }
   return list;
 }
-function newDemoProject() {
+/* ---------- 데모 2: 걸스 스타일 (GIRLSET "CHAT"), 6명, 전체 2:52 ----------
+   약 161 BPM(한 마디 1.5초). 대형은 동선 영상에서 뽑은 31개 (영상 위쪽 = 무대 뒤쪽),
+   [이동 시작 시각, 이동 시간(초), 6명 위치] — 영상이 노래보다 0.45초 늦어서 보정함 */
+const GIRLS_NAMES = ['성경', '지현', '세현', '수민', '다은', '민희'];
+const GIRLS_FORMS = [
+  [0, 0, [[-3, 0], [-1.5, 1.5], [0, -0.5], [0, 1], [3, 0], [1.5, 1.5]]],
+  [4.42, 1.63, [[-1, -1], [0, 0], [1, -1], [0, 2], [0, 1], [0, 3]]],
+  [8.43, 1.12, [[-3, -0.5], [0, 0], [3, -0.5], [-1.5, 1], [1.5, 1], [0.5, 2]]],
+  [17.43, 0.62, [[-3.5, 0], [-1.5, -0.5], [3, 0], [-1, 1], [1.5, 0.5], [0, 0]]],
+  [20.68, 0.62, [[-3.5, 0.5], [-2, -1], [3, -1], [-1, 1.5], [2, 1.5], [0, 0]]],
+  [23.68, 1.37, [[0, 2.5], [-1.5, 1.5], [0, -1], [1.5, 1.5], [2, 0], [-2, 0]]],
+  [28.68, 1.12, [[0, -0.5], [-0.5, 1.5], [-1.5, 0.5], [1.5, 0.5], [3.5, -1], [-3.5, -1]]],
+  [34.17, 0.63, [[0, -0.5], [-0.5, 1], [-1.5, -1], [1.5, -1], [3, 0], [-3, 0]]],
+  [40.17, 2.38, [[3, -1], [0, 2], [-3, -1], [0, 0.5], [1.5, 1], [-1.5, 1]]],
+  [47.42, 1.13, [[3, 2], [0.5, 2], [-3, 2], [0, 0.5], [1.5, 1], [-1.5, 1]]],
+  [52.42, 0.63, [[2, 2], [-0.5, 2.5], [-3, 3], [0, 0.5], [1.5, 1], [-2, 1]]],
+  [55.42, 1.63, [[2, 2], [-0.5, 2.5], [-3, 3], [0, 0.5], [3.5, 0], [-2, 1]]],
+  [62.42, 1.63, [[1.5, -0.5], [-1, 0], [-3.5, 0.5], [0.5, 1.5], [3.5, 0], [-1.5, 2]]],
+  [65.42, 0.88, [[1.5, -0.5], [-1.5, -0.5], [-2.5, 1.5], [0.5, 1], [2.5, 1.5], [-0.5, 0.5]]],
+  [72.67, 0.88, [[1.5, -0.5], [-1.5, -0.5], [-2.5, 1.5], [0.5, 0.5], [2.5, 1.5], [-0.5, 1]]],
+  [74.42, 2.63, [[-1, 0.5], [-2.5, -2], [-3.5, -0.5], [0, -1], [6, 1], [6, 2]]],
+  [77.67, 1.38, [[2.5, -0.5], [-2.5, 0], [-2.5, 1], [-2.5, -1], [3.5, 1], [1.5, 1]]],
+  [82.17, 0.88, [[2, 0], [0, -1], [-3.5, 1.5], [-2, 0], [3.5, 1.5], [0.5, 1]]],
+  [88.17, 1.63, [[3.5, -1.5], [0, -1], [-2, 0], [-3.5, -1.5], [0.5, 1], [2, 0]]],
+  [95.67, 1.88, [[3, 1], [-1.5, 0], [-0.5, 1], [-3, 1], [1.5, 0], [0, -1]]],
+  [106.17, 1.13, [[3.5, 0], [-2.5, 0], [-1, 0], [-4, 0], [2, 0], [0.5, 0]]],
+  [110.92, 2.88, [[2, 1], [-2, -1], [-3.5, 1], [0.5, -1], [3, -1], [-0.5, 1]]],
+  [119.17, 0.88, [[0, 1], [-2.5, 0], [0, -0.5], [-1, -1.5], [1, -1.5], [2.5, 0]]],
+  [125.67, 0.88, [[0, -1], [-1.5, 0], [0, 2], [-1, 1.5], [1, 1.5], [1.5, 0]]],
+  [133.18, 1.37, [[-4, -0.5], [-2, 1], [1.5, 0.5], [0.5, 1.5], [-0.5, 0], [3.5, -0.5]]],
+  [139.43, 1.12, [[-4, -1], [-3, 0.5], [3.5, 0.5], [2, 1.5], [0, 0], [4.5, -1]]],
+  [145.18, 1.62, [[-2.5, 1], [-2.5, 2.5], [0.5, -1], [-1, 1.5], [-1, 0], [0.5, 0.5]]],
+  [147.68, 0.62, [[-2.5, 1], [-1.5, 2.5], [0.5, -1], [0, 1.5], [-1, 0], [1.5, 0.5]]],
+  [149.43, 1.62, [[-3, -1], [-0.5, 1.5], [0, -0.5], [1.5, 0.5], [-1.5, 0.5], [3, -1]]],
+  [157.68, 1.12, [[-2, 0.5], [1, -0.5], [-1, -0.5], [0, -1.5], [0, 1], [2, 0.5]]],
+  [164.18, 3.12, [[2, 0], [-1, -1.5], [-2, 0], [-3, -1.5], [3, -1.5], [1, -1.5]]],
+];
+function makeGirlsCues() {
+  const { layer, W, B, mix, C, WHITE, CYAN, PURPLE, PINK, WARM, LAV } = demoKit();
+  // 조명 변화 (음악 구간 기준, 마디 시작에 맞춤)
+  const list = [
+    C(0, '암전', 0, mix(W.off(), B.off()), 0),
+    C(1.58, '인트로 - 핑크 페이드 인', 3, mix(W.rows([0], PINK, 30), B.off()), 0),
+    C(6.06, '인트로 빌드', 2, mix(layer(W.rows([0], PINK, 60), W.rows([1], PINK, 30)), B.top(PINK, 40)), 50),
+    C(10.57, 'A - 핑크', 0, mix(W.all(PINK, 80), B.alt(WHITE))),
+    C(18.07, 'A - 보라 + 바닥 빔', 0.3, mix(W.all(PURPLE, 70), B.floor(CYAN))),
+    C(24.08, '쉼 - 센터', 0.5, mix(W.pin(WARM, 70), B.off()), 50),
+    C(28.58, '후렴 1', 0, mix(W.all(WHITE, 100), B.all2(PINK, 100, true))),
+    C(34.57, '후렴 1 - 핑크', 0.2, mix(W.all(PINK, 100), B.top(WHITE))),
+    C(40.59, '끊기', 0, mix(W.off(), B.off()), 0),
+    C(42.07, 'B - 시안', 0, mix(W.all(CYAN, 70), B.alt(PINK))),
+    C(48.07, 'B - 보라 프리즘', 0.2, mix(W.all(PURPLE, 80), B.all2(WHITE, 100, true))),
+    C(54.08, '브릿지 - 웜', 1, mix(W.all(WARM, 40), B.off()), 50),
+    C(63.07, '벌스 2', 0.3, mix(W.all(PINK, 60), B.floor(PINK))),
+    C(70.59, '벌스 2 - 시안', 0.3, mix(W.all(CYAN, 60), B.alt(WHITE))),
+    C(78.09, '실루엣', 0.5, mix(W.rows([0], PURPLE, 100), B.off()), 0),
+    C(82.57, '빌드업', 1, mix(W.all(WHITE, 30), B.top(WHITE, 70)), 50),
+    C(96.08, '후렴 2', 0, mix(W.all(PINK, 100), B.all2(WHITE))),
+    C(103.56, '후렴 2 - 핑크 프리즘', 0.2, mix(W.all(PURPLE, 90), B.all2(PINK, 100, true))),
+    C(111.08, '댄스 브레이크', 0, mix(W.all(CYAN, 80), B.alt(WHITE), B.floor(PINK))),
+    C(118.58, '댄스 - 센터 프리즘', 1, mix(W.all(PURPLE, 30), B.top(LAV, 100, true, true)), 0),
+    C(124.58, '댄스 - 핑크', 0.2, mix(W.all(PINK, 90), B.top(WHITE))),
+    C(130.57, '브레이크 - 핀', 0.3, mix(W.pin(WHITE, 90), B.off()), 0),
+    C(134.95, '마지막 후렴', 0, mix(W.all(WHITE, 100), B.all2(WHITE, 100, true))),
+    C(142.38, '마지막 후렴 - 핑크', 0.2, mix(W.all(PINK, 100), B.top(PINK))),
+    C(149.88, '마지막 후렴 - 보라', 0.2, mix(W.all(PURPLE, 90), B.alt(CYAN), B.floor(WHITE))),
+    C(157.38, '마지막 후렴 - 시안 프리즘', 0.2, mix(W.all(CYAN, 80), B.all2(WHITE, 100, true))),
+    C(163.4, '클라이맥스', 0, mix(W.all(WHITE, 100), B.all2(WHITE))),
+    C(169.37, '엔딩 암전', 2, mix(W.off(), B.off()), 0),
+  ];
+  // 대형 이동 시작이 조명 변화와 0.75초 안이면 그 섹션에 합치고, 아니면 '대형 N' 섹션을 새로 만듦
+  const lightAt = t => list.filter(c => c.time <= t + 1e-6).pop();
+  GIRLS_FORMS.forEach(([start, move, pos], k) => {
+    const near = list.find(c => Math.abs(c.time - start) <= 0.75 && !c.form);
+    if (near) { near.form = { pos, arrive: start + move }; return; }
+    const base = lightAt(start);
+    list.push({ ...C(start, `대형 ${k + 1}`, 0.3, cloneLights(base.lights), base.front), form: { pos, arrive: start + move } });
+  });
+  list.sort((a, b) => a.time - b.time);
+  // 섹션마다 위치/이동 시간 정하기 (이동 중에 시작하는 섹션은 남은 시간만큼 이동)
+  let cur = { pos: GIRLS_FORMS[0][2], arrive: 0 };
+  for (const c of list) {
+    if (c.form) cur = c.form;
+    c.pos = fullPos(cur.pos);
+    if (cur.arrive > c.time) c.move = Math.max(0.3, +(cur.arrive - c.time).toFixed(2));
+    delete c.form;
+  }
+  return list;
+}
+
+// 데모 목록 (version이 올라가면 이미 있는 그 데모 공연을 새 내용으로 갱신)
+const DEMOS = {
+  drill: { title: '힙합 드릴', name: '데모: 힙합 드릴 ~1:40', song: 'BAND4BAND (Central Cee ft. Lil Baby)',
+    duration: 100, version: 7, dancers: 11, music: 'Demo music/demo.mp3', make: makeDrillCues },
+  girls: { title: '걸스 스타일', name: '데모: 걸스 스타일', song: 'CHAT (GIRLSET)',
+    duration: 172.7, version: 1, dancers: 6, names: GIRLS_NAMES, music: 'Demo music/demo2.mp3', make: makeGirlsCues },
+};
+const demoKey = p => p && p.demo ? (p.demo.id || 'drill') : null;
+function newDemoProject(key) {
+  const d = DEMOS[key];
   return {
-    id: uid(), name: DEMO.name, audioName: '', demo: { duration: DEMO.duration, song: DEMO.song, version: DEMO.version },
-    dancerCount: DEMO.dancers,
-    createdAt: Date.now(), updatedAt: Date.now(), cues: makeDemoCues(),
+    id: uid(), name: d.name, audioName: '',
+    demo: { id: key, duration: d.duration, song: d.song, version: d.version },
+    dancerCount: d.dancers, names: d.names ? d.names.slice() : undefined,
+    createdAt: Date.now(), updatedAt: Date.now(), cues: d.make(),
   };
 }
-// 데모 기본 음악: 'Demo music/demo.mp3'가 있으면 데모 공연에서 그걸 재생 (없으면 무음)
-const DEMO_MUSIC_URL = 'Demo music/demo.mp3';
-let demoMusicP = null;
-function loadDemoMusic() {
-  if (!demoMusicP) demoMusicP = fetch(encodeURI(DEMO_MUSIC_URL), { cache: 'no-cache' })
+// 데모 기본 음악: DEMOS[..].music 파일이 있으면 그 데모에서 재생 (없으면 무음)
+const demoMusicCache = {};
+function loadDemoMusic(url) {
+  if (!demoMusicCache[url]) demoMusicCache[url] = fetch(encodeURI(url), { cache: 'no-cache' })
     .then(r => r.ok ? r.arrayBuffer() : null)
     .then(buf => buf && buf.byteLength ? { buf, type: 'audio/mpeg', name: '데모 음악', bundled: true } : null)
     .catch(() => null);
-  return demoMusicP.then(rec => rec && { ...rec, buf: rec.buf.slice(0) });
+  return demoMusicCache[url].then(rec => rec && { ...rec, buf: rec.buf.slice(0) });
 }
 
 // 노래 없는 데모용 무음 WAV (8kHz 8bit 모노)
@@ -424,7 +529,8 @@ function renderStage(lights, fade = 0.15) {
   if (stage3d) {
     stage3d.setLights(lights, fade);
     stage3d.setFrontLights(frontOf(activeCue()), fade);
-    stage3d.setDancers(currentPos(), dancerCount(), Math.max(0.8, fade));
+    const c = activeCue();
+    stage3d.setDancers(currentPos(), dancerCount(), c && c.move ? c.move : Math.max(0.8, fade));
   }
   renderFormation();
   const f = frontOf(activeCue());
@@ -736,7 +842,7 @@ function svgPoint(e) {
   pt.x = e.clientX; pt.y = e.clientY;
   return pt.matrixTransform(svg.getScreenCTM().inverse());
 }
-const describePos = (i, [x, z]) => `${i + 1}번 · ${x ? `${x < 0 ? 'SR' : 'SL'} ${Math.abs(x)}m` : '센터'} · ${z ? `${z > 0 ? '앞' : '뒤'} ${Math.abs(z)}m` : '가운데 줄'}`;
+const describePos = (i, [x, z]) => `${(state.project.names && state.project.names[i]) || `${i + 1}번`} · ${x ? `${x < 0 ? 'SR' : 'SL'} ${Math.abs(x)}m` : '센터'} · ${z ? `${z > 0 ? '앞' : '뒤'} ${Math.abs(z)}m` : '가운데 줄'}`;
 
 function renderFormation() {
   const cue = activeCue();
@@ -761,7 +867,8 @@ function renderFormation() {
   for (let i = 0; i < n; i++) {
     const [x, z] = pos[i];
     const d = svgEl('g', { class: 'fm-dancer' + (formDrag && formDrag.i === i ? ' drag' : ''), transform: `translate(${x} ${z})` });
-    d.append(svgEl('circle', { r: 0.32 }), svgEl('text', { y: 0.12 }, i + 1));
+    const nm = state.project.names && state.project.names[i];
+    d.append(svgEl('circle', { r: 0.32 }), svgEl('text', { y: nm ? 0.1 : 0.12, class: nm ? 'nm' : '' }, nm || i + 1));
     d.append(svgEl('title', {}, describePos(i, [x, z])));
     d.addEventListener('pointerdown', e => {
       if (!activeCue()) return;
@@ -1131,7 +1238,7 @@ async function openProject(id) {
   renderProjectSelect();
   let rec = null;
   try { rec = await DB.getAudio(id); } catch (e) { console.warn(e); }
-  if (!rec && p.demo) rec = (await loadDemoMusic()) || silentAudioRec(p.demo.duration);
+  if (!rec && p.demo) rec = (await loadDemoMusic(DEMOS[demoKey(p)].music)) || silentAudioRec(p.demo.duration);
   await setAudioRec(rec || null);
   audio.currentTime = 0;
   syncToPlayhead(false);
@@ -1286,6 +1393,7 @@ async function importFile(file) {
       pos: normalizePos(c.pos),
     })),
     dancerCount: clamp(Number.isInteger(src.dancerCount) ? src.dancerCount : DEFAULT_DANCERS, 0, MAX_DANCERS),
+    names: Array.isArray(src.names) ? src.names.slice(0, MAX_DANCERS).map(n => String(n || '').slice(0, 4)) : undefined,
   };
 
   const existing = state.projects.find(x => x.id === p.id);
@@ -1398,6 +1506,16 @@ function bindEvents() {
   // 조명 조정
   $$('[data-sel]').forEach(b => b.addEventListener('click', () => selectGroup(b.dataset.sel)));
   $$('[data-bri]').forEach(b => b.addEventListener('click', () => setBrightness(+b.dataset.bri)));
+  // 데모 고르기 메뉴
+  const menu = $('#demoMenu');
+  Object.entries(DEMOS).forEach(([key, d], i) => {
+    const b = el('button', 'demo-item');
+    b.append(el('b', null, `${i + 1}. ${d.title}`), el('span', 'muted', `${d.song} · ${d.dancers}명 · ${fmt(d.duration).replace(/\.\d$/, '')}`));
+    b.addEventListener('click', () => { menu.hidden = true; openDemo(key); });
+    menu.append(b);
+  });
+  $('#btnDemo').addEventListener('click', e => { e.stopPropagation(); menu.hidden = !menu.hidden; });
+  document.addEventListener('click', e => { if (!menu.hidden && !menu.contains(e.target)) menu.hidden = true; });
   $('#btnPrism').addEventListener('click', () => toggleBeamFlag('p', '프리즘'));
   $('#btnFocus').addEventListener('click', () => toggleBeamFlag('f', '센터 모으기'));
   $('#dancerMinus').addEventListener('click', () => setDancerCount(dancerCount() - 1));
@@ -1459,6 +1577,28 @@ function bindEvents() {
 /* =========================================================
    시작
    ========================================================= */
+// 데모 공연 준비: 같은 데모의 가장 최근 공연이 옛 버전이면 새 내용으로 갱신 (올린 노래는 유지),
+// 없으면 create일 때만 새로 만듦
+async function ensureDemo(key, create) {
+  const d = DEMOS[key];
+  const old = state.projects.filter(p => demoKey(p) === key).sort((a, b) => b.createdAt - a.createdAt)[0];
+  if (old && old.demo.version === d.version) return old;
+  if (!old && !create) return null;
+  const fresh = newDemoProject(key);
+  const p = old ? Object.assign(old, { name: fresh.name, demo: fresh.demo, cues: fresh.cues, dancerCount: fresh.dancerCount,
+    names: fresh.names, updatedAt: Date.now(), updatedNow: true }) : fresh;
+  if (!old) state.projects.push(p);
+  const { updatedNow, ...data } = p;
+  await DB.putProject(data).catch(() => {});
+  return p;
+}
+async function openDemo(key) {
+  const p = await ensureDemo(key, true);
+  delete p.updatedNow;
+  await openProject(p.id);
+  toast(`${DEMOS[key].title} 데모를 열었어요 · Space로 재생`);
+}
+
 async function init() {
   buildStage();
   buildFormationMap();
@@ -1473,19 +1613,17 @@ async function init() {
   }
   // 처음 오는 브라우저에는 데모 공연을 넣고 그걸 열어 보여줌.
   // 데모가 새 버전이면 가장 최근 데모 공연의 큐만 바꿔치기 (올려둔 노래는 그대로 유지)
-  let seenVer = 0;
-  try { seenVer = +localStorage.getItem('lightcue.demoVersion') || 0; } catch { /* 무시 */ }
   let last = null;
-  if (seenVer !== DEMO.version || !state.projects.length) {
-    const fresh = newDemoProject();
-    const old = state.projects.filter(p => p.demo).sort((a, b) => b.createdAt - a.createdAt)[0];
-    const p = old ? Object.assign(old, { name: fresh.name, demo: fresh.demo, cues: fresh.cues, dancerCount: fresh.dancerCount, updatedAt: Date.now() }) : fresh;
-    if (!old) state.projects.push(p);
-    await DB.putProject(p).catch(() => {});
-    try { localStorage.setItem('lightcue.demoVersion', String(DEMO.version)); } catch { /* 무시 */ }
-    last = p.id;
-  } else {
-    try { last = localStorage.getItem('lightcue.last'); } catch { /* 무시 */ }
+  try { last = localStorage.getItem('lightcue.last'); } catch { /* 무시 */ }
+  for (const key of Object.keys(DEMOS)) {
+    const p = await ensureDemo(key, false);
+    if (p && p.updatedNow) { last = p.id; delete p.updatedNow; }
+  }
+  let seen = true;
+  try { seen = !!localStorage.getItem('lightcue.demoVersion'); } catch { /* 무시 */ }
+  if (!seen || !state.projects.length) {
+    last = (await ensureDemo('drill', true)).id;
+    try { localStorage.setItem('lightcue.demoVersion', '1'); } catch { /* 무시 */ }
   }
   const pick = state.projects.find(p => p.id === last) || state.projects.slice().sort((a, b) => b.updatedAt - a.updatedAt)[0];
   await openProject(pick.id);

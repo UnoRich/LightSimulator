@@ -239,6 +239,7 @@ body.show .show-bar {
 .fm-dancer { cursor: grab; }
 .fm-dancer circle { fill: #c9ccd6; stroke: #0e0f13; stroke-width: .06; }
 .fm-dancer text { fill: #0e0f13; font-size: .34px; font-weight: 800; text-anchor: middle; pointer-events: none; }
+.fm-dancer text.nm { font-size: .24px; letter-spacing: -.01px; }
 .fm-dancer:hover circle, .fm-dancer.drag circle { fill: #fff; stroke: var(--primary); stroke-width: .08; }
 .fm-dancer.drag { cursor: grabbing; }
 
@@ -365,3 +366,16 @@ body.dragging .drop-overlay { display: grid; }
   background: #222842; border: 1px solid #3b4a8c; color: var(--text);
 }
 .demo-note b { color: var(--accent); }
+
+/* ---------- 데모 고르기 ---------- */
+.demo-wrap { position: relative; }
+.demo-menu {
+  position: absolute; top: calc(100% + 6px); left: 0; z-index: 60;
+  min-width: 260px; padding: 6px; display: flex; flex-direction: column; gap: 4px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+  box-shadow: 0 10px 30px rgba(0,0,0,.5);
+}
+.demo-menu[hidden] { display: none; }
+.demo-item { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; border-color: transparent; background: transparent; }
+.demo-item:hover { background: var(--panel-2); }
+.demo-item span { font-size: 12px; }

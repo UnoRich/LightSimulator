@@ -1,4 +1,4 @@
-import { createStage } from './stage3d.js?v=10';
+import { createStage } from './stage3d.js?v=11';
 
 /* =========================================================
    상수
@@ -289,7 +289,12 @@ function cueAt(t) {
   for (const c of cues()) { if (c.time <= t + 0.001) found = c; else break; }
   return found;
 }
-const duration = () => (isFinite(audio.duration) ? audio.duration : 0);
+// 데모 공연은 정해진 길이(1:40)까지만 쓰고, 더 긴 노래 파일을 올려도 거기서 멈춤
+const duration = () => {
+  const d = isFinite(audio.duration) ? audio.duration : 0;
+  const demo = state.project && state.project.demo;
+  return demo ? Math.min(d, demo.duration) : d;
+};
 
 function newProjectData(name = DEFAULT_NAME) {
   return {
@@ -401,6 +406,10 @@ function jumpCue(dir) {
 
 let raf = 0;
 function loop() {
+  if (!audio.paused && duration() && audio.currentTime >= duration()) {
+    audio.pause();
+    audio.currentTime = duration();
+  }
   syncToPlayhead(true);
   drawTimeline();
   if (!audio.paused) raf = requestAnimationFrame(loop);
@@ -440,11 +449,11 @@ const cv = $('#timeline');
 const ctx = cv.getContext('2d');
 const BAND_H = 22;
 
-function computePeaks(buf, buckets = 3000) {
+function computePeaks(buf, buckets = 3000, maxSec = Infinity) {
   const ch = buf.numberOfChannels;
   const data = [];
   for (let i = 0; i < ch; i++) data.push(buf.getChannelData(i));
-  const len = data[0].length;
+  const len = Math.min(data[0].length, Math.floor(maxSec * buf.sampleRate));
   const size = Math.max(1, Math.floor(len / buckets));
   const step = Math.max(1, Math.floor(size / 64));
   const peaks = new Float32Array(buckets);
@@ -926,7 +935,8 @@ async function setAudioRec(rec) {
     const decoded = await ac.decodeAudioData(rec.buf.slice(0));
     ac.close && ac.close();
     if (state.project && state.project.id === projectId) {
-      state.peaks = computePeaks(decoded);
+      const demo = state.project.demo;
+      state.peaks = computePeaks(decoded, 3000, demo ? demo.duration : Infinity);
       drawTimeline();
     }
   } catch (e) {

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Light Cue</title>
   <meta name="description" content="댄스 공연용 조명 큐 시뮬레이터 — 노래에 맞춰 섹션별 조명을 미리 짜고 조명감독에게 보여주세요.">
-  <link rel="stylesheet" href="style.css?v=26">
+  <link rel="stylesheet" href="style.css?v=27">
 </head>
 <body>
   <header class="topbar">
@@ -83,8 +83,15 @@
             <button id="dancerPlus" class="small" title="한 명 추가 (최대 20명)">+</button>
           </div>
           <div class="chip-row" id="formPresets"></div>
+          <h3 class="steps-h">이 섹션의 동선 <small class="muted">타임라인 아래 '동선' 줄의 ○ ◆와 같아요</small></h3>
+          <div class="chip-row" id="formSteps"></div>
+          <div class="step-row">
+            <button id="formStepAdd" class="small" title="재생 위치에 지금 배치를 복사해서 새 동선 추가">+ 지금 위치에 동선 추가</button>
+            <button id="formStepDel" class="small danger" title="선택된 동선 삭제 (시작 배치는 삭제 불가)">동선 삭제</button>
+            <label class="move-field">이동 <input id="formMove" type="number" min="0.3" max="10" step="0.1" placeholder="자동">초</label>
+          </div>
           <button id="formApplyNext" class="small">이 배치를 뒤 섹션 모두에 적용</button>
-          <p class="muted form-tip">번호를 끌어서 옮겨요 (0.25m 단위). 섹션마다 배치가 따로 저장되고, 섹션이 바뀌면 그 자리로 이동해요. 아래쪽이 객석이에요.</p>
+          <p class="muted form-tip">번호를 끌어서 옮겨요 (0.25m 단위). 지금 보이는 동선이 고쳐져요. ◆는 타임라인에서 좌우로 끌어 시간을 바꿀 수 있어요. 아래쪽이 객석이에요.</p>
           <p class="form-info" id="formInfo"></p>
         </div>
       </div>
@@ -187,6 +194,6 @@
       }
     }
   </script>
-  <script type="module" src="app.js?v=26"></script>
+  <script type="module" src="app.js?v=27"></script>
 </body>
 </html>

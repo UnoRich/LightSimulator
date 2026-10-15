@@ -1,4 +1,4 @@
-import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=26';
+import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=27';
 
 /* =========================================================
    상수
@@ -656,6 +656,9 @@ function renderHud() {
 const cv = $('#timeline');
 const ctx = cv.getContext('2d');
 const BAND_H = 22;
+const LANE_H = 24;            // 파형 아래 동선 줄
+// 동선 줄의 세로 위치 (아래 눈금 14px 위)
+const laneTop = H => H - 14 - LANE_H;
 
 function computePeaks(buf, buckets = 3000, maxSec = Infinity) {
   const ch = buf.numberOfChannels;
@@ -757,7 +760,7 @@ function drawTimeline() {
   });
 
   // 파형
-  const top = BAND_H + 4, bottom = H - 14, mid = (top + bottom) / 2, amp = (bottom - top) / 2;
+  const top = BAND_H + 4, bottom = laneTop(H) - 3, mid = (top + bottom) / 2, amp = (bottom - top) / 2;
   if (state.peaks) {
     const p = state.peaks, n = p.length;
     const playX = timeToX(audio.currentTime, W);
@@ -792,6 +795,32 @@ function drawTimeline() {
     ctx.fillText(`🔍 ${fmt(vr.start)} – ${fmt(vr.start + vr.len)}`, W - 114, BAND_H + 15);
   }
 
+  // 동선 줄: 섹션 시작 배치(○)와 섹션 안 동선 변화(◆), 이동하는 동안은 막대로
+  const ly = laneTop(H), lm = ly + LANE_H / 2;
+  ctx.fillStyle = '#13151b';
+  ctx.fillRect(0, ly, W, LANE_H);
+  ctx.fillStyle = '#6b7080';
+  ctx.font = '10px -apple-system, sans-serif';
+  if (timeToX(0, W) > -40) ctx.fillText('동선', 4, lm + 3);
+  const shown = dancerTarget().key;
+  list.forEach(c => {
+    const marks = [{ t: c.time, move: c.move, key: c.id, base: true }, ...(c.steps || []).map((st, i) => ({ t: st.t, move: st.move, key: `${c.id}:${i}` }))];
+    for (const m of marks) {
+      const x = timeToX(m.t, W), on = m.key === shown;
+      if (m.move) {
+        ctx.fillStyle = on ? 'rgba(255,181,71,.55)' : 'rgba(201,204,214,.25)';
+        ctx.fillRect(x, lm - 2, Math.max(2, timeToX(m.t + m.move, W) - x), 4);
+      }
+      ctx.fillStyle = on ? '#ffb547' : '#c9ccd6';
+      ctx.strokeStyle = on ? '#ffb547' : '#c9ccd6';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      if (m.base) { ctx.arc(x, lm, 4, 0, Math.PI * 2); ctx.stroke(); }
+      else { ctx.moveTo(x, lm - 6); ctx.lineTo(x + 6, lm); ctx.lineTo(x, lm + 6); ctx.lineTo(x - 6, lm); ctx.closePath(); ctx.fill(); }
+      if (m.key === dragStepKey) { ctx.strokeStyle = '#fff'; ctx.stroke(); }
+    }
+  });
+
   // 섹션 경계선
   list.forEach(c => {
     const x = Math.round(timeToX(c.time, W)) + 0.5;
@@ -810,6 +839,20 @@ function drawTimeline() {
 
 // 클릭 = 이동, 섹션 경계선 드래그 = 시간 조절
 let dragCueId = null, dragMoved = false, downX = 0, scrubbing = false;
+let dragStepKey = null;
+// 동선 줄에서 가까운 표시 찾기 → { cue, idx(-1이면 시작 배치), t }
+function hitStep(x, W) {
+  let best = null, bestD = 9;
+  for (const c of cues()) {
+    const marks = [{ cue: c, idx: -1, t: c.time }, ...(c.steps || []).map((st, i) => ({ cue: c, idx: i, t: st.t }))];
+    for (const m of marks) {
+      const d = Math.abs(timeToX(m.t, W) - x);
+      if (d < bestD) { best = m; bestD = d; }
+    }
+  }
+  return best;
+}
+const inLane = (y, H) => y >= laneTop(H) && y < laneTop(H) + LANE_H;
 function hitCue(x, W) {
   let best = null, bestD = 8;
   for (const c of cues()) {
@@ -824,6 +867,11 @@ cv.addEventListener('pointerdown', e => {
   const x = e.clientX - rect.left;
   cv.setPointerCapture(e.pointerId);
   downX = x; dragMoved = false;
+  if (inLane(e.clientY - rect.top, rect.height)) {
+    const m = hitStep(x, rect.width);
+    if (m && m.idx >= 0) { dragStepKey = `${m.cue.id}:${m.idx}`; seek(m.t + 0.001); drawTimeline(); return; }
+    if (m) { seek(m.t); return; }
+  }
   const c = hitCue(x, rect.width);
   if (c) { dragCueId = c.id; }
   else { scrubbing = true; seek(xToTime(x, rect.width)); }
@@ -831,6 +879,22 @@ cv.addEventListener('pointerdown', e => {
 cv.addEventListener('pointermove', e => {
   const rect = cv.getBoundingClientRect();
   const x = e.clientX - rect.left;
+  if (dragStepKey) {
+    if (!dragMoved && Math.abs(x - downX) < 4) return;
+    dragMoved = true;
+    const [cid, si] = dragStepKey.split(':');
+    const c = cues().find(c => c.id === cid);
+    const st = c && c.steps && c.steps[+si];
+    if (st) {
+      const next = cues().find(n => n.time > c.time);
+      st.t = Math.round(clamp(xToTime(x, rect.width), c.time + 0.1, next ? next.time - 0.1 : duration()) * 10) / 10;
+      audio.currentTime = st.t + 0.001;
+      state.danceKey = null;
+      syncToPlayhead(false);
+      drawTimeline();
+    }
+    return;
+  }
   if (dragCueId) {
     if (!dragMoved && Math.abs(x - downX) < 4) return;
     dragMoved = true;
@@ -839,10 +903,25 @@ cv.addEventListener('pointermove', e => {
   } else if (scrubbing) {
     seek(xToTime(x, rect.width));
   } else {
-    cv.style.cursor = hitCue(x, rect.width) ? 'ew-resize' : 'pointer';
+    const lane = inLane(e.clientY - rect.top, rect.height);
+    const m = lane && hitStep(x, rect.width);
+    cv.style.cursor = m ? (m.idx >= 0 ? 'ew-resize' : 'pointer') : !lane && hitCue(x, rect.width) ? 'ew-resize' : 'pointer';
   }
 });
 function endPointer() {
+  if (dragStepKey) {
+    const [cid] = dragStepKey.split(':');
+    const c = cues().find(c => c.id === cid);
+    if (c && c.steps) {
+      // 순서가 바뀌었으면 정렬하고, 끌던 동선이 계속 선택되게
+      const moved = c.steps[+dragStepKey.split(':')[1]];
+      c.steps.sort((a, b) => a.t - b.t);
+      if (dragMoved) save();
+      if (moved) seek(moved.t + 0.001);
+    }
+    dragStepKey = null;
+    drawTimeline();
+  }
   if (dragCueId) {
     const c = cues().find(c => c.id === dragCueId);
     dragCueId = null;
@@ -896,7 +975,64 @@ function svgPoint(e) {
 }
 const describePos = (i, [x, z]) => `${(state.project.names && state.project.names[i]) || `${i + 1}번`} · ${x ? `${x < 0 ? 'SR' : 'SL'} ${Math.abs(x)}m` : '센터'} · ${z ? `${z > 0 ? '앞' : '뒤'} ${Math.abs(z)}m` : '가운데 줄'}`;
 
+// 인원 배치 패널의 동선 목록: 시작 배치 + 섹션 안 동선 변화
+function renderSteps() {
+  const box = $('#formSteps');
+  box.textContent = '';
+  const cue = activeCue();
+  if (!cue) return;
+  const shown = dancerTarget().key;
+  const add = (label, key, t) => {
+    const b = el('button', 'chip' + (key === shown ? ' on' : ''), label);
+    b.addEventListener('click', () => seek(t));
+    box.append(b);
+  };
+  add('시작 배치', cue.id, cue.time);
+  (cue.steps || []).forEach((st, i) => add(`◆ ${fmt(st.t)}`, `${cue.id}:${i}`, st.t + 0.001));
+  const isStep = shown.includes(':');
+  $('#formStepDel').disabled = !isStep;
+  // 지금 보이는 동선의 이동 시간
+  const cur = isStep ? cue.steps[+shown.split(':')[1]] : cue;
+  const mv = $('#formMove');
+  if (document.activeElement !== mv) mv.value = cur && cur.move ? cur.move : '';
+}
+function addStep() {
+  const cue = activeCue();
+  if (!cue) { toast('먼저 섹션을 추가하세요'); return; }
+  const t = Math.round(audio.currentTime * 10) / 10;
+  if (t < cue.time + 0.1) { toast('섹션 시작 지점에는 시작 배치가 있어요. 재생 위치를 조금 뒤로 옮겨 주세요'); return; }
+  cue.steps = cue.steps || [];
+  if (cue.steps.some(st => Math.abs(st.t - t) < 0.15)) { toast('이 위치에 이미 동선이 있어요'); return; }
+  cue.steps.push({ t, move: 1, pos: currentPos().map(p => p.slice()) });
+  cue.steps.sort((a, b) => a.t - b.t);
+  save();
+  seek(t + 0.001);
+  toast('지금 배치를 복사해서 동선을 추가했어요. 사람을 끌어서 옮겨 주세요');
+}
+function deleteStep() {
+  const cue = activeCue();
+  const key = dancerTarget().key;
+  if (!cue || !key.includes(':')) return;
+  cue.steps.splice(+key.split(':')[1], 1);
+  if (!cue.steps.length) delete cue.steps;
+  state.danceKey = null;
+  save();
+  syncToPlayhead(false);
+  drawTimeline();
+}
+function setMoveTime(v) {
+  const cue = activeCue();
+  if (!cue) return;
+  const key = dancerTarget().key;
+  const target = key.includes(':') ? cue.steps[+key.split(':')[1]] : cue;
+  const n = parseFloat(v);
+  if (isFinite(n) && n > 0) target.move = clamp(n, 0.3, 10); else delete target.move;
+  save();
+  drawTimeline();
+}
+
 function renderFormation() {
+  renderSteps();
   const cue = activeCue();
   const n = dancerCount();
   $('#formation').classList.toggle('off', !cue);
@@ -1578,6 +1714,9 @@ function bindEvents() {
   $('#dancerMinus').addEventListener('click', () => setDancerCount(dancerCount() - 1));
   $('#dancerPlus').addEventListener('click', () => setDancerCount(dancerCount() + 1));
   $('#formApplyNext').addEventListener('click', applyFormationToNext);
+  $('#formStepAdd').addEventListener('click', addStep);
+  $('#formStepDel').addEventListener('click', deleteStep);
+  $('#formMove').addEventListener('change', e => setMoveTime(e.target.value));
   for (const [key, f] of Object.entries(FORMATIONS)) {
     const b = el('button', 'chip', f.name);
     b.addEventListener('click', () => applyFormation(key));

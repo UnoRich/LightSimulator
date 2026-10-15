@@ -1,4 +1,4 @@
-import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=15';
+import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=16';
 
 /* =========================================================
    상수
@@ -884,8 +884,13 @@ function renderCueList() {
     li.addEventListener('click', () => seek(c.time));
     ol.append(li);
   }
+  // 재생 중엔 지금 섹션이 보이게 목록 안에서만 스크롤 (페이지 전체는 움직이지 않음)
   const act = ol.querySelector('.active');
-  if (act && !audio.paused) act.scrollIntoView({ block: 'nearest' });
+  if (act && !audio.paused) {
+    const top = act.offsetTop, bottom = top + act.offsetHeight; // .cue-list가 position: relative
+    if (top < ol.scrollTop) ol.scrollTop = top;
+    else if (bottom > ol.scrollTop + ol.clientHeight) ol.scrollTop = bottom - ol.clientHeight;
+  }
 }
 
 function addCue() {

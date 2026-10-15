@@ -260,7 +260,7 @@ h3 small { font-weight: 400; font-size: 11px; margin-left: 4px; }
 .quick { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); }
 .quick .chip-row { margin-bottom: 0; }
 .quick.off { opacity: .35; pointer-events: none; }
-.cue-list { list-style: none; margin: 0; padding: 0; max-height: 300px; overflow-y: auto; }
+.cue-list { position: relative; list-style: none; margin: 0; padding: 0; max-height: 300px; overflow-y: auto; }
 .cue-list li {
   display: grid; grid-template-columns: 56px 1fr auto auto; align-items: center; gap: 10px;
   padding: 7px 8px; border-radius: 8px; cursor: pointer;

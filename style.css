@@ -271,6 +271,14 @@ h3 small { font-weight: 400; font-size: 11px; margin-left: 4px; }
 .cue-list .mini { width: 124px; gap: 3px; }
 .mini i.beam { border-radius: 2px; transform: scale(.8) rotate(45deg); }
 .mini.pick i.beam:hover { transform: scale(1.1) rotate(45deg); }
+.mini .front {
+  grid-row: 6; grid-column: 2 / 8; height: 5px; margin-top: 2px; border-radius: 3px;
+  background: #fff1dc;
+}
+.mini .front.f0 { background: transparent; box-shadow: inset 0 0 0 1px #3a3d47; }
+.mini .front.f50 { opacity: .45; }
+.cue-list .mini .front { height: 8px; cursor: pointer; }
+.cue-list .mini .front:hover { box-shadow: 0 0 0 1.5px var(--primary); }
 .mini i.prism { box-shadow: inset 0 0 0 2px rgba(0,0,0,.55); }
 .prism-btn.on { border-color: var(--accent); color: var(--accent); }
 .mini.pick i { cursor: pointer; transition: transform .1s; }

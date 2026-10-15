@@ -1,4 +1,4 @@
-import { createStage } from './stage3d.js?v=9';
+import { createStage } from './stage3d.js?v=10';
 
 /* =========================================================
    상수
@@ -146,28 +146,28 @@ function makeDemoCues() {
   });
   const WHITE = '#ffffff', BLUE = '#2a5bff', CYAN = '#1ae0ff', PURPLE = '#8a2aff',
     RED = '#ff2a2a', PINK = '#ff2ad0', WARM = '#ffd59a';
-  const C = (time, name, fade, lights) => ({ id: uid(), time, name, fade, lights });
+  const C = (time, name, fade, lights, front = 100) => ({ id: uid(), time, name, fade, lights, front });
   return [
-    C(0, '암전', 0, mix(W.off(), B.off())),
-    C(1.81, '페이드 인 1 - 뒷줄 희미하게', 3, mix(W.rows([0], BLUE, 15), B.off())),
-    C(5.22, '페이드 인 2 - 중간줄', 3, mix(layer(W.rows([0], BLUE, 40), W.rows([1], BLUE, 15)), B.off())),
-    C(8.66, '페이드 인 3 - 빔 깨어남', 3, mix(layer(W.rows([0], BLUE, 60), W.rows([1], BLUE, 30)), B.top(WHITE, 20))),
-    C(12.24, '드롭 직전', 1.5, mix(W.all(WHITE, 15), B.top(WHITE, 60))),
+    C(0, '암전', 0, mix(W.off(), B.off()), 0),
+    C(1.81, '페이드 인 1 - 뒷줄 희미하게', 3, mix(W.rows([0], BLUE, 15), B.off()), 0),
+    C(5.22, '페이드 인 2 - 중간줄', 3, mix(layer(W.rows([0], BLUE, 40), W.rows([1], BLUE, 15)), B.off()), 0),
+    C(8.66, '페이드 인 3 - 빔 깨어남', 3, mix(layer(W.rows([0], BLUE, 60), W.rows([1], BLUE, 30)), B.top(WHITE, 20)), 0),
+    C(12.24, '드롭 직전', 1.5, mix(W.all(WHITE, 15), B.top(WHITE, 60)), 50),
     C(14.05, '드롭', 0, mix(W.all(WHITE, 100), B.all(WHITE))),
     C(15.81, '빨강 + 교차 빔', 0.1, mix(W.all(RED, 80), B.alt(WHITE))),
     C(19.37, '바닥 빔', 0.1, mix(W.all(RED, 60), B.floor(WHITE))),
-    C(22.78, '빨간 실루엣 + 프리즘', 0.1, mix(W.rows([0], RED, 100), B.all(WHITE, 100, true))),
+    C(22.78, '빨간 실루엣 + 프리즘', 0.1, mix(W.rows([0], RED, 100), B.all(WHITE, 100, true)), 0),
     C(26.22, '훅 끝', 0.1, mix(W.all(WHITE, 70), B.top(WHITE))),
-    C(28.0, '808 멈춤 - 핀', 0, mix(W.pin(WHITE, 40), B.off())),
+    C(28.0, '808 멈춤 - 핀', 0, mix(W.pin(WHITE, 40), B.off()), 0),
     C(29.84, '재드롭', 0, mix(W.all(BLUE, 100), B.all(WHITE))),
     C(31.37, '벌스 1', 0.3, mix(W.all(BLUE, 60), B.floor(CYAN))),
     C(38.24, '벌스 1 - 교차 빔', 0.1, mix(W.all(BLUE, 60), B.alt(WHITE), B.floor(CYAN))),
     C(41.66, '벌스 1 - 보라', 0.3, mix(W.all(PURPLE, 60), B.top(PURPLE))),
     C(48.51, '벌스 1 - 프리즘', 0.2, mix(W.all(RED, 70), B.top(WHITE, 100, true))),
     C(53.64, '벌스 1 끝', 0.1, mix(W.all(WHITE, 50), B.all(WHITE, 100, true))),
-    C(55.36, '쉼', 0.2, mix(W.off(), B.off())),
-    C(56.63, '벌스 2 - 빨간 실루엣', 0, mix(W.rows([0], RED, 100), B.floor(RED))),
-    C(62.23, '벌스 2 - 웜', 0.5, mix(W.all(WARM, 50), B.top(WARM, 80))),
+    C(55.36, '쉼', 0.2, mix(W.off(), B.off()), 0),
+    C(56.63, '벌스 2 - 빨간 실루엣', 0, mix(W.rows([0], RED, 100), B.floor(RED)), 0),
+    C(62.23, '벌스 2 - 웜', 0.5, mix(W.all(WARM, 50), B.top(WARM, 80)), 50),
     C(69.06, '훅 2', 0, mix(W.all(BLUE, 100), B.all(WHITE))),
     C(72.49, '훅 2 - 핑크 교차', 0.1, mix(W.all(BLUE, 80), B.alt(PINK))),
     C(75.88, '훅 2 - 핑크 프리즘', 0.1, mix(W.all(PINK, 70), B.all(WHITE, 100, true))),
@@ -179,7 +179,7 @@ function makeDemoCues() {
     C(93.09, '보라 프리즘', 0.1, mix(W.all(PURPLE, 80), B.all(WHITE, 100, true))),
     C(96.41, '빨강 풀', 0, mix(W.all(RED, 100), B.all(WHITE))),
     C(98.13, '마무리 풀 화이트', 0, mix(W.all(WHITE, 100), B.all(WHITE, 100, true))),
-    C(100, '엔딩 암전', 2, mix(W.off(), B.off())),
+    C(100, '엔딩 암전', 2, mix(W.off(), B.off()), 0),
   ];
 }
 function newDemoProject() {
@@ -324,15 +324,31 @@ function buildStage() {
       onToggle: i => toggleSelect(i),
       onRow: r => selectGroup('r' + r),
     });
-    stage3d.setFrontLights(100); // 전면등 100%가 기본
   } catch (e) {
     console.error(e);
     $('#stage').append(el('div', 'empty', '이 브라우저에서는 3D 무대를 표시할 수 없어요 (WebGL 미지원)'));
   }
 }
 
+// 전면등은 섹션마다 0 / 50 / 100 (예전 데이터는 100)
+const FRONT_STEPS = [0, 50, 100];
+const frontOf = c => c ? (FRONT_STEPS.includes(c.front) ? c.front : 100) : 100;
+
 function renderStage(lights, fade = 0.15) {
-  if (stage3d) stage3d.setLights(lights, fade);
+  if (stage3d) {
+    stage3d.setLights(lights, fade);
+    stage3d.setFrontLights(frontOf(activeCue()), fade);
+  }
+  const f = frontOf(activeCue());
+  $$('[data-front]').forEach(b => b.classList.toggle('on', +b.dataset.front === f));
+}
+
+// 섹션의 전면등 바꾸기 (val 없으면 0 → 50 → 100 → 0 순서로)
+function setCueFront(cue, val) {
+  if (!cue) { toast('먼저 섹션을 추가하세요'); return; }
+  cue.front = val != null ? val : FRONT_STEPS[(FRONT_STEPS.indexOf(frontOf(cue)) + 1) % FRONT_STEPS.length];
+  if (cue.id !== state.activeCueId) { save(); seek(cue.time); renderCueList(); drawTimeline(); return; }
+  lightsChanged();
 }
 
 function currentLights() {
@@ -587,7 +603,8 @@ cv.addEventListener('pointercancel', endPointer);
    섹션 목록
    ========================================================= */
 // onPick(i)가 있으면 점을 눌러 해당 조명을 고를 수 있음, sel은 선택 표시할 조명 집합
-function miniGrid(lights, onPick, sel) {
+// front/onFront가 있으면 맨 아래에 전면등 막대 (누르면 0 → 50 → 100)
+function miniGrid(lights, onPick, sel, front, onFront) {
   const g = el('div', 'mini');
   lights.forEach((l, i) => {
     const d = el('i');
@@ -606,6 +623,12 @@ function miniGrid(lights, onPick, sel) {
     }
     g.append(d);
   });
+  if (front != null) {
+    const f = el('b', 'front f' + front);
+    f.title = `전면등 ${front}%` + (onFront ? ' (누르면 0 → 50 → 100%)' : '');
+    if (onFront) f.addEventListener('click', e => { e.stopPropagation(); onFront(); });
+    g.append(f);
+  }
   if (onPick) g.classList.add('pick');
   return g;
 }
@@ -631,7 +654,7 @@ function renderCueList() {
     if (c.id === state.activeCueId) li.classList.add('active');
     const active = c.id === state.activeCueId;
     li.append(el('span', 't', fmt(c.time)), el('span', 'n', c.name || '(이름 없음)'),
-      miniGrid(c.lights, i => pickCueLight(c, i), active ? state.selected : null));
+      miniGrid(c.lights, i => pickCueLight(c, i), active ? state.selected : null, frontOf(c), () => setCueFront(c)));
     const del = el('button', 'del', '✕');
     del.title = '섹션 삭제';
     del.addEventListener('click', e => { e.stopPropagation(); deleteCue(c.id); });
@@ -655,6 +678,7 @@ function addCue() {
     name: `섹션 ${cues().length + 1}`,
     fade: DEFAULT_FADE,
     lights: base ? cloneLights(base.lights) : fill('#ffffff', 50),
+    front: frontOf(base),
   };
   state.project.cues.push(cue);
   sortCues();
@@ -1018,6 +1042,7 @@ async function importFile(file) {
       name: String(c.name || ''),
       fade: clamp(+c.fade || 0, 0, 10),
       lights: normalizeLights(c.lights),
+      front: FRONT_STEPS.includes(c.front) ? c.front : 100,
     })),
   };
 
@@ -1079,10 +1104,10 @@ function bindEvents() {
   });
   $('#btnViewReset').addEventListener('click', () => stage3d && stage3d.resetView());
   // 전면등: 100% / 50% 중 하나, 켜진 버튼을 다시 누르면 끄기
+  // 전면등 버튼: 지금 섹션의 전면등을 정함 (켜진 버튼을 다시 누르면 끄기)
   $$('[data-front]').forEach(b => b.addEventListener('click', () => {
-    const on = !b.classList.contains('on');
-    $$('[data-front]').forEach(x => x.classList.toggle('on', on && x === b));
-    if (stage3d) stage3d.setFrontLights(on ? +b.dataset.front : 0);
+    const v = +b.dataset.front;
+    setCueFront(activeCue(), frontOf(activeCue()) === v ? 0 : v);
   }));
   $('#btnHouse').addEventListener('click', e => {
     if (stage3d) e.currentTarget.classList.toggle('on', stage3d.toggleHouseLights());
@@ -1196,13 +1221,13 @@ async function init() {
   }
   // 처음 오는 브라우저에는 데모 공연을 한 번 넣고 그걸 열어 보여줌
   let seeded = true;
-  try { seeded = !!localStorage.getItem('lightcue.demoSeeded.v2'); } catch { /* 무시 */ }
+  try { seeded = !!localStorage.getItem('lightcue.demoSeeded.v3'); } catch { /* 무시 */ }
   let last = null;
   if (!seeded || !state.projects.length) {
     const p = newDemoProject();
     state.projects.push(p);
     await DB.putProject(p).catch(() => {});
-    try { localStorage.setItem('lightcue.demoSeeded.v2', '1'); } catch { /* 무시 */ }
+    try { localStorage.setItem('lightcue.demoSeeded.v3', '1'); } catch { /* 무시 */ }
     last = p.id;
   } else {
     try { last = localStorage.getItem('lightcue.last'); } catch { /* 무시 */ }

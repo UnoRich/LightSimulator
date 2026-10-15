@@ -403,6 +403,11 @@ export function createStage(container, { onToggle, onRow }) {
       }
       L.lens.material.color.setRGB(cur.r, cur.g, cur.b).multiplyScalar(0.05 + cur.o * 4);
     }
+    {
+      const k = front.dur > 0 ? ease(Math.min(1, (now - front.t0) / (front.dur * 1000))) : 1;
+      front.cur = front.from + (front.to - front.from) * k;
+      for (const s of frontLights) s.intensity = FRONT_INTENSITY * front.cur;
+    }
     controls.update();
     placeMarks();
     composer.render();
@@ -448,9 +453,14 @@ export function createStage(container, { onToggle, onRow }) {
   const toggleHouseLights = () => setHouseLights(!houseOn);
   setHouseLights(false);
 
-  // 전면등 밝기 (0~100%)
-  function setFrontLights(pct) {
-    for (const s of frontLights) s.intensity = FRONT_INTENSITY * pct / 100;
+  // 전면등 밝기 (0~100%), fade초 동안 부드럽게
+  const front = { cur: 0, from: 0, to: 0, t0: 0, dur: 0 };
+  function setFrontLights(pct, fade = 0.15) {
+    if (pct / 100 === front.to) return;
+    front.from = front.cur;
+    front.to = pct / 100;
+    front.t0 = performance.now();
+    front.dur = fade;
   }
 
   return { setLights, setSelected, resetView, setHouseLights, toggleHouseLights, setFrontLights };

@@ -1,4 +1,4 @@
-import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=21';
+import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=22';
 
 /* =========================================================
    상수
@@ -581,6 +581,10 @@ function jumpCue(dir) {
 
 let raf = 0;
 function loop() {
+  if (view.len && !audio.paused) {
+    const { start, len } = viewRange(), t = audio.currentTime;
+    if (t < start || t > start + len * 0.92) setView(t - len * 0.08, len);
+  }
   if (!audio.paused && duration() && audio.currentTime >= duration()) {
     audio.pause();
     audio.currentTime = duration();
@@ -649,8 +653,40 @@ function computePeaks(buf, buckets = 3000, maxSec = Infinity) {
   return peaks;
 }
 
-function timeToX(t, W) { const d = duration(); return d ? (t / d) * W : 0; }
-function xToTime(x, W) { return clamp((x / W) * duration(), 0, duration()); }
+// 타임라인 보기 범위 (확대/이동). len이 0이면 전체 보기
+const view = { start: 0, len: 0 };
+const MIN_VIEW = 3;
+function viewRange() {
+  const d = duration();
+  const len = view.len && view.len < d ? view.len : d;
+  const start = clamp(view.start, 0, Math.max(0, d - len));
+  return { start, len };
+}
+function setView(start, len) {
+  const d = duration();
+  if (!d) return;
+  len = clamp(len, Math.min(MIN_VIEW, d), d);
+  view.len = len >= d ? 0 : len;
+  view.start = view.len ? clamp(start, 0, d - len) : 0;
+  drawTimeline();
+}
+function timeToX(t, W) { const { start, len } = viewRange(); return len ? ((t - start) / len) * W : 0; }
+function xToTime(x, W) { const { start, len } = viewRange(); return clamp(start + (x / W) * len, 0, duration()); }
+
+// 타임라인 위에 마우스가 있을 때 W/S 확대·축소 (마우스 위치 기준), A/D 왼쪽·오른쪽 이동
+const tlHover = { on: false, x: 0 };
+function timelineKey(code) {
+  const W = cv.clientWidth, { start, len } = viewRange();
+  if (!W || !len) return false;
+  const mx = clamp(tlHover.x, 0, W), at = start + (mx / W) * len;
+  if (code === 'KeyW' || code === 'KeyS') {
+    const nl = code === 'KeyW' ? len / 1.5 : len * 1.5;
+    setView(at - (mx / W) * nl, nl);
+  } else if (code === 'KeyA' || code === 'KeyD') {
+    setView(start + (code === 'KeyA' ? -0.25 : 0.25) * len, len);
+  } else return false;
+  return true;
+}
 
 function drawTimeline() {
   const dpr = window.devicePixelRatio || 1;
@@ -669,7 +705,7 @@ function drawTimeline() {
   // 섹션 색 띠
   list.forEach((c, i) => {
     const x0 = timeToX(c.time, W);
-    const x1 = i + 1 < list.length ? timeToX(list[i + 1].time, W) : W;
+    const x1 = i + 1 < list.length ? timeToX(list[i + 1].time, W) : timeToX(d, W);
     const a = avgLight(c.lights.slice(0, N_WASH));
     ctx.fillStyle = '#20232c';
     ctx.fillRect(x0, 0, x1 - x0, BAND_H);
@@ -697,7 +733,7 @@ function drawTimeline() {
     const p = state.peaks, n = p.length;
     const playX = timeToX(audio.currentTime, W);
     for (let x = 0; x < W; x++) {
-      const i0 = Math.floor((x / W) * n), i1 = Math.max(i0 + 1, Math.floor(((x + 1) / W) * n));
+      const i0 = Math.floor((xToTime(x, W) / d) * n), i1 = Math.max(i0 + 1, Math.floor((xToTime(x + 1, W) / d) * n));
       let m = 0;
       for (let i = i0; i < i1 && i < n; i++) if (p[i] > m) m = p[i];
       const h = Math.max(1, m * amp);
@@ -712,11 +748,19 @@ function drawTimeline() {
   // 시간 눈금
   ctx.fillStyle = '#6b7080';
   ctx.font = '10px -apple-system, sans-serif';
-  const tick = d > 240 ? 30 : d > 60 ? 15 : 5;
-  for (let t = tick; t < d; t += tick) {
+  const vr = viewRange();
+  const tick = vr.len > 240 ? 30 : vr.len > 60 ? 15 : vr.len > 20 ? 5 : vr.len > 8 ? 2 : 1;
+  for (let t = Math.max(tick, Math.ceil(vr.start / tick) * tick); t < Math.min(d, vr.start + vr.len); t += tick) {
     const x = timeToX(t, W);
     ctx.fillRect(x, H - 12, 1, 4);
     ctx.fillText(fmt(t).replace(/\.\d$/, ''), x + 3, H - 3);
+  }
+  // 확대 중이면 범위 표시
+  if (view.len) {
+    ctx.fillStyle = 'rgba(0,0,0,.55)';
+    ctx.fillRect(W - 118, BAND_H + 4, 114, 16);
+    ctx.fillStyle = '#c9ccd6';
+    ctx.fillText(`🔍 ${fmt(vr.start)} – ${fmt(vr.start + vr.len)}`, W - 114, BAND_H + 15);
   }
 
   // 섹션 경계선
@@ -1207,6 +1251,7 @@ async function openProject(id) {
   const p = state.projects.find(p => p.id === id);
   if (!p) return;
   state.project = p;
+  view.start = 0; view.len = 0;
   for (const c of p.cues) {
     if (c.lights.length !== N) c.lights = normalizeLights(c.lights);
     if (!Array.isArray(c.pos) || c.pos.length !== MAX_DANCERS) c.pos = normalizePos(c.pos);
@@ -1521,6 +1566,7 @@ function bindEvents() {
   document.addEventListener('keydown', e => {
     if (e.target.closest('input, textarea, select') && e.target.type !== 'range') return;
     if (e.metaKey || e.ctrlKey || e.altKey) return;
+    if (tlHover.on && !state.showMode && timelineKey(e.code)) { e.preventDefault(); return; }
     if (e.code === 'Space') {
       e.preventDefault();
       if (e.target.closest('button')) e.target.blur();
@@ -1548,6 +1594,10 @@ function bindEvents() {
     else loadAudioFile(f);
   });
 
+  const tw = $('#timelineWrap');
+  tw.addEventListener('pointerenter', () => { tlHover.on = true; });
+  tw.addEventListener('pointerleave', () => { tlHover.on = false; });
+  tw.addEventListener('pointermove', e => { tlHover.x = e.clientX - cv.getBoundingClientRect().left; });
   window.addEventListener('resize', drawTimeline);
   new ResizeObserver(drawTimeline).observe($('#timelineWrap'));
 }

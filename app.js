@@ -1,4 +1,4 @@
-import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=22';
+import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=23';
 
 /* =========================================================
    상수
@@ -301,11 +301,11 @@ function makeGirlsCues() {
     C(1.58, '인트로 - 핑크 페이드 인', 5, mix(layer(W.rows([0], PINK, 50), W.rows([1], PINK, 25)), B.top(PINK, 30)), 0),
     C(10.57, 'A - 핑크', 0, mix(W.all(PINK, 80), B.alt(WHITE))),
     C(24.08, '쉼 - 센터', 0.5, mix(W.pin(WARM, 70), B.off()), 50),
-    C(28.58, '후렴 1', 0, mix(W.all(WHITE, 100), B.all2(PINK, 100, true))),
+    C(30.7, '후렴 1', 0, mix(W.all(WHITE, 70), B.all2(PINK, 100, true))),
     C(42.07, 'B - 시안', 0, mix(W.all(CYAN, 70), B.alt(PINK))),
     C(54.08, '브릿지 - 웜', 1, mix(W.all(WARM, 40), B.off()), 50),
     C(63.07, '벌스 2', 0.3, mix(W.all(PINK, 60), B.floor(PINK))),
-    C(78.09, '빌드업', 1.5, mix(W.rows([0], PURPLE, 80), B.top(WHITE, 60)), 0),
+    C(80.1, '빌드업', 1.5, mix(W.rows([0], PURPLE, 80), B.top(WHITE, 60)), 0),
     C(96.08, '후렴 2', 0, mix(W.all(PINK, 100), B.all2(WHITE))),
     C(111.08, '댄스 브레이크', 0, mix(W.all(CYAN, 80), B.alt(WHITE), B.floor(PINK))),
     C(118.58, '센터 프리즘', 1, mix(W.all(PURPLE, 30), B.top(LAV, 100, true, true)), 0),
@@ -330,7 +330,7 @@ const DEMOS = {
   drill: { title: '힙합 드릴', name: '데모: 힙합 드릴 ~1:40', song: 'BAND4BAND (Central Cee ft. Lil Baby)',
     duration: 100, version: 7, dancers: 11, music: 'Demo music/demo.mp3', make: makeDrillCues },
   girls: { title: '걸스 스타일', name: '데모: 걸스 스타일', song: 'CHAT (GIRLSET)',
-    duration: 172.7, version: 2, dancers: 6, names: GIRLS_NAMES, music: 'Demo music/demo2.mp3', make: makeGirlsCues },
+    duration: 172.7, version: 3, dancers: 6, names: GIRLS_NAMES, music: 'Demo music/demo2.mp3', make: makeGirlsCues },
 };
 const demoKey = p => p && p.demo ? (p.demo.id || 'drill') : null;
 function newDemoProject(key) {

@@ -1,5 +1,5 @@
-import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=40';
-import { GIRLS_DEMO } from './demo-girls.js?v=40';
+import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=41';
+import { GIRLS_DEMO } from './demo-girls.js?v=41';
 
 /* =========================================================
    상수
@@ -180,7 +180,7 @@ const BEAM_PRESETS = [
 ];
 
 /* =========================================================
-   데모 공연: 힙합 드릴 비트 1:40까지, 약 136 BPM 마디에 맞춘 큐
+   데모 공연: 힙합 드릴 비트 (노래 전체 2:31), 약 136 BPM 마디에 맞춘 큐
    (암전에서 시작해 서서히 밝아지는 인트로 → 0:14 드롭)
    노래 파일은 포함하지 않음 → 무음으로 조명만 재생, 파일을 올리면 같이 재생
    ========================================================= */
@@ -231,8 +231,13 @@ function makeDrillCues() {
     C(56.63, '벌스 2 - 센터 프리즘', 1, mix(W.all(PURPLE, 25), B.top('#6a7cff', 100, true, true)), 0),
     C(69.06, '훅 2', 0, mix(W.all(BLUE, 100), B.all(WHITE))),
     C(86.22, '훅 2 후반 - 빨강 + 바닥 빔', 0, mix(W.all(RED, 80), B.top(WHITE), B.floor(RED))),
-    C(98.13, '마무리 풀 화이트', 0, mix(W.all(WHITE, 100), B.all(WHITE, 100, true))),
-    C(100, '엔딩 암전', 2, mix(W.off(), B.off()), 0),
+    C(102.1, '벌스 3 - 빨강', 0, mix(W.all(RED, 90), B.all(WHITE))),
+    C(109.9, '808 멈춤 2 - 핀', 0, mix(W.pin(WHITE, 50), B.off()), 0),
+    C(113.2, '재드롭 2 - 프리즘', 0, mix(W.all(BLUE, 100), B.all(WHITE, 100, true))),
+    C(123.5, '후반 - 보라 + 교차 빔', 0.2, mix(W.all(PURPLE, 80), B.alt(PINK), B.floor(WHITE))),
+    C(135.07, '마지막 히트', 0, mix(W.all(WHITE, 100), B.all(WHITE, 100, true))),
+    C(137.6, '아웃트로 - 실루엣', 1.5, mix(W.rows([0], BLUE, 60), B.top(BLUE, 30)), 0),
+    C(148.6, '엔딩 암전', 2.5, mix(W.off(), B.off()), 0),
   ];
   // 11명 대형: 해당 시각부터 다음 지정 시각까지 유지
   const n = 11, F = FORMATIONS;
@@ -244,7 +249,9 @@ function makeDrillCues() {
     [0, back], [12.24, F.clump.make(n)], [14.05, F.v.make(n)], [22.78, F.rows.make(n)],
     [28.0, solo], [29.84, tri], [41.66, grid],
     // 쉼(암전) 동안 가운데로 모여서 센터 프리즘 아래에 서기
-    [55.36, F.clump.make(n, 0, 0.6)], [69.06, tri], [86.22, grid], [98.13, tri],
+    [55.36, F.clump.make(n, 0, 0.6)], [69.06, tri], [86.22, grid],
+    [102.1, F.v.make(n)], [109.9, solo], [113.2, F.rows.make(n)], [123.5, F.circle.make(n)],
+    [135.07, tri], [137.6, back],
   ];
   let cur = back;
   for (const c of list) {
@@ -272,8 +279,8 @@ function makeGirlsCues() {
 
 // 데모 목록 (version이 올라가면 이미 있는 그 데모 공연을 새 내용으로 갱신)
 const DEMOS = {
-  drill: { title: '힙합 드릴', name: '데모: 힙합 드릴 ~1:40', song: 'BAND4BAND (Central Cee ft. Lil Baby)',
-    duration: 100, version: 8, dancers: 11, music: 'Demo music/Demo1/music', make: makeDrillCues },
+  drill: { title: '힙합 드릴', name: '데모: 힙합 드릴', song: 'BAND4BAND (Central Cee ft. Lil Baby)',
+    duration: 151.2, version: 9, dancers: 11, music: 'Demo music/Demo1/music', make: makeDrillCues },
   girls: { title: '걸스 스타일', name: '데모: 걸스 스타일', song: 'CHAT (GIRLSET)',
     duration: 172.7, version: 10, dancers: 6, names: GIRLS_NAMES, music: 'Demo music/Demo2/music', make: makeGirlsCues },
 };
@@ -404,7 +411,7 @@ function cueAt(t) {
   for (const c of cues()) { if (c.time <= t + 0.001) found = c; else break; }
   return found;
 }
-// 데모 공연은 정해진 길이(1:40)까지만 쓰고, 더 긴 노래 파일을 올려도 거기서 멈춤
+// 데모 공연은 정해진 길이(demo.duration)까지만 쓰고, 더 긴 노래 파일을 올려도 거기서 멈춤
 const duration = () => {
   const d = isFinite(audio.duration) ? audio.duration : 0;
   const demo = state.project && state.project.demo;

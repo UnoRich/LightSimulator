@@ -1,5 +1,6 @@
-import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=41';
-import { GIRLS_DEMO } from './demo-girls.js?v=41';
+import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=42';
+import { GIRLS_DEMO } from './demo-girls.js?v=42';
+import { DRILL_DEMO } from './demo-drill.js?v=42';
 
 /* =========================================================
    상수
@@ -180,92 +181,12 @@ const BEAM_PRESETS = [
 ];
 
 /* =========================================================
-   데모 공연: 힙합 드릴 비트 (노래 전체 2:31), 약 136 BPM 마디에 맞춘 큐
-   (암전에서 시작해 서서히 밝아지는 인트로 → 0:14 드롭)
-   노래 파일은 포함하지 않음 → 무음으로 조명만 재생, 파일을 올리면 같이 재생
+   데모 공연 (노래 파일은 포함하지 않음 → 무음으로 조명만 재생, 파일을 올리면 같이 재생)
+   데모 1 '힙합 드릴' (BAND4BAND, 11명, 2:31): 음악 분석으로 짠 큐를 직접 편집해서 demo-drill.js에 담음
    ========================================================= */
-// 데모 큐를 짤 때 쓰는 도구 모음
-function demoKit() {
-  // 여러 워시 레이어 합치기: 같은 조명은 앞쪽 레이어 우선
-  const layer = (...ws) => ws[0].map((l, i) => ws.map(w => w[i]).find(x => x.b) || L('#ffffff', 0));
-  const W = {
-    all: (c, b) => fill(c, b),
-    off: () => fill('#ffffff', 0),
-    rows: (rs, c, b) => lightsWhere(r => rs.includes(r), c, b),
-    cols: (cs, c, b) => lightsWhere((r, k) => r > 0 && cs.includes(k), c, b),
-    pin: (c, b) => lightsWhere((r, k) => r === 1 && (k === 2 || k === 3), c, b),
-  };
-  const B = {
-    off: () => beamsWhere(() => false),
-    all: (c, b = 100, p = false) => beamsWhere(() => true, c, b, p),
-    top: (c, b = 100, p = false, f = false) => beamsWhere(top => top, c, b, p, f),
-    floor: (c, b = 100, p = false) => beamsWhere(top => !top, c, b, p),
-    alt: (c, b = 100, p = false) => beamsWhere((top, k) => top && k % 2 === 0, c, b, p),
-    all2: (c, b = 100, p = false, f = false) => beamsWhere(() => true, c, b, p, f),
-  };
-  // 워시 + 빔(여러 개면 켜진 쪽 우선) 합치기
-  const mix = (wash, ...beams) => wash.map((l, i) => {
-    if (!isBeam(i)) return l;
-    return beams.map(bs => bs[i]).find(x => x.b) || L('#ffffff', 0);
-  });
-  const C = (time, name, fade, lights, front = 100) => ({ id: uid(), time, name, fade, lights, front });
-  const COLORS = { WHITE: '#ffffff', BLUE: '#2a5bff', CYAN: '#1ae0ff', PURPLE: '#8a2aff', RED: '#ff2a2a',
-    PINK: '#ff2ad0', WARM: '#ffd59a', LAV: '#6a7cff' };
-  return { layer, W, B, mix, C, ...COLORS };
-}
-
-function makeDrillCues() {
-  const { layer, W, B, mix, C, WHITE, BLUE, CYAN, PURPLE, RED, PINK, WARM } = demoKit();
-  const list = [
-    C(0, '암전', 0, mix(W.off(), B.off()), 0),
-    C(1.81, '페이드 인 1 - 뒷줄 희미하게', 3, mix(W.rows([0], BLUE, 15), B.off()), 0),
-    C(5.22, '페이드 인 2 - 중간줄', 3, mix(layer(W.rows([0], BLUE, 40), W.rows([1], BLUE, 15)), B.off()), 0),
-    C(8.66, '페이드 인 3 - 빔 깨어남', 3, mix(layer(W.rows([0], BLUE, 60), W.rows([1], BLUE, 30)), B.top(WHITE, 20)), 0),
-    C(12.24, '드롭 직전', 1.5, mix(W.all(WHITE, 15), B.top(WHITE, 60)), 50),
-    C(14.05, '드롭', 0, mix(W.all(WHITE, 100), B.all(WHITE))),
-    C(22.78, '빨강 + 프리즘', 0.3, mix(W.all(RED, 80), B.all(WHITE, 100, true))),
-    C(28.0, '808 멈춤 - 핀', 0, mix(W.pin(WHITE, 40), B.off()), 0),
-    C(29.84, '재드롭 - 벌스 1', 0, mix(W.all(BLUE, 80), B.all(WHITE), B.floor(CYAN))),
-    C(41.66, '벌스 1 - 보라', 0.3, mix(W.all(PURPLE, 60), B.top(PURPLE))),
-    C(55.36, '쉼', 0.2, mix(W.off(), B.off()), 0),
-    C(56.63, '벌스 2 - 센터 프리즘', 1, mix(W.all(PURPLE, 25), B.top('#6a7cff', 100, true, true)), 0),
-    C(69.06, '훅 2', 0, mix(W.all(BLUE, 100), B.all(WHITE))),
-    C(86.22, '훅 2 후반 - 빨강 + 바닥 빔', 0, mix(W.all(RED, 80), B.top(WHITE), B.floor(RED))),
-    C(102.1, '벌스 3 - 빨강', 0, mix(W.all(RED, 90), B.all(WHITE))),
-    C(109.9, '808 멈춤 2 - 핀', 0, mix(W.pin(WHITE, 50), B.off()), 0),
-    C(113.2, '재드롭 2 - 프리즘', 0, mix(W.all(BLUE, 100), B.all(WHITE, 100, true))),
-    C(123.5, '후반 - 보라 + 교차 빔', 0.2, mix(W.all(PURPLE, 80), B.alt(PINK), B.floor(WHITE))),
-    C(135.07, '마지막 히트', 0, mix(W.all(WHITE, 100), B.all(WHITE, 100, true))),
-    C(137.6, '아웃트로 - 실루엣', 1.5, mix(W.rows([0], BLUE, 60), B.top(BLUE, 30)), 0),
-    C(148.6, '엔딩 암전', 2.5, mix(W.off(), B.off()), 0),
-  ];
-  // 11명 대형: 해당 시각부터 다음 지정 시각까지 유지
-  const n = 11, F = FORMATIONS;
-  const back = F.line.make(n, -2.6);
-  const grid = [...spread(4, 4.5).map(x => [x, 1.4]), ...spread(3, 3).map(x => [x, 0]), ...spread(4, 4.5).map(x => [x, -1.4])];
-  const tri = [[0, 2.4], ...spread(2, 1.4).map(x => [x, 1.3]), ...spread(3, 2.8).map(x => [x, 0.2]), ...spread(5, 5.6).map(x => [x, -0.9])];
-  const solo = [[0, -0.3], ...spread(10, 11.4).map(x => [x, -3.6])];
-  const FORM_AT = [
-    [0, back], [12.24, F.clump.make(n)], [14.05, F.v.make(n)], [22.78, F.rows.make(n)],
-    [28.0, solo], [29.84, tri], [41.66, grid],
-    // 쉼(암전) 동안 가운데로 모여서 센터 프리즘 아래에 서기
-    [55.36, F.clump.make(n, 0, 0.6)], [69.06, tri], [86.22, grid],
-    [102.1, F.v.make(n)], [109.9, solo], [113.2, F.rows.make(n)], [123.5, F.circle.make(n)],
-    [135.07, tri], [137.6, back],
-  ];
-  let cur = back;
-  for (const c of list) {
-    const f = FORM_AT.find(([t]) => Math.abs(t - c.time) < 0.01);
-    if (f) cur = f[1];
-    c.pos = fullPos(cur);
-  }
-  return list;
-}
-/* ---------- 데모 2: 걸스 스타일 (GIRLSET "CHAT"), 6명, 전체 2:52 ----------
-   동선 영상에서 뽑은 대형으로 시작해서 직접 편집한 결과를 demo-girls.js에 그대로 담음 */
-const GIRLS_NAMES = ['성경', '지현', '세현', '수민', '다은', '민희'];
-function makeGirlsCues() {
-  return GIRLS_DEMO.map(c => {
+// 내보낸 큐 데이터 → 섹션 목록
+function cuesFromData(data) {
+  return data.map(c => {
     const cue = {
       id: uid(), time: c.time, name: c.name, fade: c.fade, front: c.front,
       lights: c.lights.map(([col, b, p, f]) => L(col, b, !!p, !!f)),
@@ -276,11 +197,17 @@ function makeGirlsCues() {
     return cue;
   });
 }
+const makeDrillCues = () => cuesFromData(DRILL_DEMO);
+
+/* ---------- 데모 2: 걸스 스타일 (GIRLSET "CHAT"), 6명, 전체 2:52 ----------
+   동선 영상에서 뽑은 대형으로 시작해서 직접 편집한 결과를 demo-girls.js에 그대로 담음 */
+const GIRLS_NAMES = ['성경', '지현', '세현', '수민', '다은', '민희'];
+const makeGirlsCues = () => cuesFromData(GIRLS_DEMO);
 
 // 데모 목록 (version이 올라가면 이미 있는 그 데모 공연을 새 내용으로 갱신)
 const DEMOS = {
   drill: { title: '힙합 드릴', name: '데모: 힙합 드릴', song: 'BAND4BAND (Central Cee ft. Lil Baby)',
-    duration: 151.2, version: 9, dancers: 11, music: 'Demo music/Demo1/music', make: makeDrillCues },
+    duration: 151.2, version: 10, dancers: 11, music: 'Demo music/Demo1/music', make: makeDrillCues },
   girls: { title: '걸스 스타일', name: '데모: 걸스 스타일', song: 'CHAT (GIRLSET)',
     duration: 172.7, version: 10, dancers: 6, names: GIRLS_NAMES, music: 'Demo music/Demo2/music', make: makeGirlsCues },
 };

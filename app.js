@@ -1,6 +1,6 @@
-import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=47';
-import { GIRLS_DEMO } from './demo-girls.js?v=47';
-import { DRILL_DEMO } from './demo-drill.js?v=47';
+import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=48';
+import { GIRLS_DEMO } from './demo-girls.js?v=48';
+import { DRILL_DEMO } from './demo-drill.js?v=48';
 
 /* =========================================================
    상수
@@ -35,6 +35,11 @@ const BEAM_IDX = [...Array(N - N_WASH).keys()].map(i => i + N_WASH);
    x: 왼쪽(-)=SR(상수) ~ 오른쪽(+)=SL(하수), z: 뒤(-)=US ~ 앞(+)=DS(객석 쪽) */
 const STAGE_X = 6.2, STAGE_Z_BACK = -4.1, STAGE_Z_FRONT = 4.2;
 const DEFAULT_DANCERS = 7;
+// 사람마다 구분 색 (앞 6개는 동선 영상과 같은 색: 노랑, 시안, 핑크, 주황, 보라, 초록)
+const DANCER_COLORS = ['#ffe14d', '#3fe0f0', '#ff6fae', '#ff9a2e', '#9b7bff', '#7ee08a', '#ff6b6b', '#6aa8ff',
+  '#d4ff4d', '#ffb3e6', '#4dffc3', '#c9a0ff', '#ffd29b', '#8fd3ff', '#eeeeee', '#ff8f70', '#b8e986', '#e0b0ff',
+  '#a0fff0', '#ffc94d'];
+const dancerColor = i => DANCER_COLORS[i % DANCER_COLORS.length];
 const OLD_DANCERS = [[0, -0.6], [-1.6, 0.4], [1.6, 0.4], [-3.2, 1.3], [3.2, 1.3], [-1.6, -1.8], [1.6, -1.8]];
 const snap = v => Math.round(v * 4) / 4;
 const clampPos = ([x, z]) => [snap(clamp(x, -STAGE_X, STAGE_X)), snap(clamp(z, STAGE_Z_BACK, STAGE_Z_FRONT))];
@@ -965,7 +970,9 @@ function renderRoster() {
   const names = (state.project && state.project.names) || [];
   for (let i = 0; i < dancerCount(); i++) {
     const b = el('button', 'roster-item');
-    b.append(el('span', 'rc', names[i] || i + 1));
+    const rc = el('span', 'rc', names[i] || i + 1);
+    rc.style.background = dancerColor(i);
+    b.append(rc);
     b.title = `${names[i] || `${i + 1}번`} · 눌러서 이름 바꾸기`;
     b.addEventListener('click', () => editRosterName(i, b));
     box.append(b);
@@ -1029,7 +1036,7 @@ function renderFormation() {
     const [x, z] = pos[i];
     const d = svgEl('g', { class: 'fm-dancer' + (formDrag && formDrag.i === i ? ' drag' : ''), transform: `translate(${x} ${z})` });
     const nm = state.project.names && state.project.names[i];
-    d.append(svgEl('circle', { r: 0.32 }), svgEl('text', { y: nm ? 0.1 : 0.12, class: nm ? 'nm' : '' }, nm || i + 1));
+    d.append(svgEl('circle', { r: 0.32, fill: dancerColor(i) }), svgEl('text', { y: nm ? 0.1 : 0.12, class: nm ? 'nm' : '' }, nm || i + 1));
     d.append(svgEl('title', {}, describePos(i, [x, z])));
     d.addEventListener('pointerdown', e => {
       if (!activeCue()) return;

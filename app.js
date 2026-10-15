@@ -1,4 +1,4 @@
-import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=29';
+import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=30';
 
 /* =========================================================
    상수
@@ -1159,15 +1159,26 @@ function applyFormation(key) {
   renderStage(currentLights(), 0.15);
   save();
 }
-// 지금 배치를 뒤에 오는 섹션 전부에 복사
-function applyFormationToNext() {
+// 바로 앞 배치를 지금 보이는 배치에 복사 (앞 동선 → 같은 섹션 시작 배치 → 앞 섹션의 마지막 배치 순)
+function copyPrevFormation() {
   const cue = activeCue();
-  if (!cue) return;
-  const later = cues().filter(c => c.time > cue.time);
-  if (!later.length) { toast('뒤에 오는 섹션이 없어요'); return; }
-  for (const c of later) c.pos = cue.pos.map(p => p.slice());
+  if (!cue) { toast('먼저 섹션을 추가하세요'); return; }
+  const key = dancerTarget().key;
+  let prev = null;
+  if (key.includes(':')) {
+    const i = +key.split(':')[1];
+    prev = i > 0 ? cue.steps[i - 1].pos : cue.pos;
+  } else {
+    const before = cues().filter(c => c.time < cue.time).pop();
+    if (before) prev = before.steps && before.steps.length ? before.steps[before.steps.length - 1].pos : before.pos;
+  }
+  if (!prev) { toast('앞에 있는 배치가 없어요'); return; }
+  const target = currentPos();
+  target.splice(0, MAX_DANCERS, ...prev.map(p => p.slice()));
+  state.danceKey = null;
+  renderStage(currentLights(), 0.15);
   save();
-  toast(`뒤 섹션 ${later.length}개에 같은 배치를 넣었어요`);
+  toast('바로 앞 배치를 복사했어요');
 }
 
 /* =========================================================
@@ -1801,7 +1812,7 @@ function bindEvents() {
   $('#btnFocus').addEventListener('click', () => toggleBeamFlag('f', '센터 모으기'));
   $('#dancerMinus').addEventListener('click', () => setDancerCount(dancerCount() - 1));
   $('#dancerPlus').addEventListener('click', () => setDancerCount(dancerCount() + 1));
-  $('#formApplyNext').addEventListener('click', applyFormationToNext);
+  $('#formCopyPrev').addEventListener('click', copyPrevFormation);
   $('#formStepAdd').addEventListener('click', addStep);
   $('#formStepDel').addEventListener('click', deleteStep);
   $('#formMove').addEventListener('change', e => setMoveTime(e.target.value));

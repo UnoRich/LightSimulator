@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Light Cue</title>
   <meta name="description" content="댄스 공연용 조명 큐 시뮬레이터 — 노래에 맞춰 섹션별 조명을 미리 짜고 조명감독에게 보여주세요.">
-  <link rel="stylesheet" href="style.css?v=29">
+  <link rel="stylesheet" href="style.css?v=30">
 </head>
 <body>
   <header class="topbar">
@@ -90,7 +90,7 @@
             <button id="formStepDel" class="small danger" title="선택된 동선 삭제 (시작 배치는 삭제 불가)">동선 삭제</button>
             <label class="move-field">이동 <input id="formMove" type="number" min="0.3" max="10" step="0.1" placeholder="자동">초</label>
           </div>
-          <button id="formApplyNext" class="small">이 배치를 뒤 섹션 모두에 적용</button>
+          <button id="formCopyPrev" class="small" title="바로 앞 배치(앞 동선 또는 앞 섹션의 마지막 배치)를 지금 배치에 복사">앞 배치를 복사</button>
           <p class="muted form-tip">번호를 끌어서 옮겨요 (0.25m 단위). 지금 보이는 동선이 고쳐져요. ◆는 타임라인에서 좌우로 끌어 시간을 바꿀 수 있어요. 아래쪽이 객석이에요.</p>
           <p class="form-info" id="formInfo"></p>
         </div>
@@ -194,6 +194,6 @@
       }
     }
   </script>
-  <script type="module" src="app.js?v=29"></script>
+  <script type="module" src="app.js?v=30"></script>
 </body>
 </html>

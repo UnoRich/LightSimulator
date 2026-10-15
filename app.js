@@ -1,4 +1,4 @@
-import { createStage } from './stage3d.js?v=6';
+import { createStage } from './stage3d.js?v=7';
 
 /* =========================================================
    상수
@@ -239,6 +239,7 @@ function buildStage() {
       onToggle: i => toggleSelect(i),
       onRow: r => selectGroup('r' + r),
     });
+    stage3d.setFrontLights(100); // 전면등 100%가 기본
   } catch (e) {
     console.error(e);
     $('#stage').append(el('div', 'empty', '이 브라우저에서는 3D 무대를 표시할 수 없어요 (WebGL 미지원)'));

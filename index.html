@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Light Cue</title>
   <meta name="description" content="댄스 공연용 조명 큐 시뮬레이터 — 노래에 맞춰 섹션별 조명을 미리 짜고 조명감독에게 보여주세요.">
-  <link rel="stylesheet" href="style.css?v=6">
+  <link rel="stylesheet" href="style.css?v=7">
 </head>
 <body>
   <header class="topbar">
@@ -30,7 +30,7 @@
         <div class="stage" id="stage">
           <div class="layer" id="marks"></div>
           <div class="stage-tools">
-            <button data-front="100" title="전면등 100% (다시 누르면 끄기)">🔦 전면 100%</button>
+            <button data-front="100" class="on" title="전면등 100% (다시 누르면 끄기)">🔦 전면 100%</button>
             <button data-front="50" title="전면등 50% (다시 누르면 끄기)">🔦 전면 50%</button>
             <button id="btnHouse" title="객석등 켜기/끄기">💡 객석등</button>
             <button id="btnViewReset" title="시점 초기화 (더블클릭)">⟲ 시점</button>
@@ -166,6 +166,6 @@
       }
     }
   </script>
-  <script type="module" src="app.js?v=6"></script>
+  <script type="module" src="app.js?v=7"></script>
 </body>
 </html>

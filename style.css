@@ -212,6 +212,36 @@ body.show .show-bar {
 .hint { color: var(--muted); font-size: 12px; margin: 8px 2px 0; }
 @media (max-width: 600px) { .hint { display: none; } }
 
+/* ---------- 인원 배치 ---------- */
+.formation {
+  display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start;
+  margin-top: 12px; padding: 12px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+}
+.formation.off { opacity: .45; }
+.formation.off #formMap { pointer-events: none; }
+#formMap { flex: 1 1 360px; max-width: 560px; width: 100%; aspect-ratio: 14 / 11.2; touch-action: none; user-select: none; }
+.form-side { flex: 1 1 220px; min-width: 0; }
+.form-head h3 { margin-top: 0; }
+.count-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.count-row b { min-width: 22px; text-align: center; font-size: 16px; }
+.count-row button { width: 32px; padding: 4px 0; }
+.form-tip { font-size: 12px; margin: 10px 0 0; }
+.form-info { font-size: 13px; color: var(--accent); min-height: 18px; margin: 6px 0 0; }
+.fm-stage { fill: #2a2118; stroke: #6b5841; stroke-width: .05; }
+.fm-grid { stroke: rgba(255,255,255,.06); stroke-width: .02; }
+.fm-center { stroke: rgba(255,255,255,.18); stroke-width: .03; }
+.fm-zone { stroke: rgba(255,255,255,.22); stroke-width: .03; stroke-dasharray: .15 .12; }
+.fm-zlabel { fill: rgba(255,255,255,.28); font-size: .42px; text-anchor: middle; font-weight: 700; }
+.fm-tick { fill: var(--muted); font-size: .34px; text-anchor: middle; }
+.fm-aud { fill: var(--muted); font-size: .42px; text-anchor: middle; }
+#fmLights circle { pointer-events: none; }
+.fm-dancer { cursor: grab; }
+.fm-dancer circle { fill: #c9ccd6; stroke: #0e0f13; stroke-width: .06; }
+.fm-dancer text { fill: #0e0f13; font-size: .34px; font-weight: 800; text-anchor: middle; pointer-events: none; }
+.fm-dancer:hover circle, .fm-dancer.drag circle { fill: #fff; stroke: var(--primary); stroke-width: .08; }
+.fm-dancer.drag { cursor: grabbing; }
+
 /* ---------- 패널 ---------- */
 .panel {
   background: var(--panel);

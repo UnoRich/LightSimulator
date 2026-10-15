@@ -25,6 +25,7 @@ const BEAM_ANGLE = 0.32;      // 조명 퍼지는 각도 (반각, 라디안)
 const CAM_HOME = new THREE.Vector3(0, 3.1, 19);
 const CAM_TARGET = new THREE.Vector3(0, 2.4, 0);
 const STAGE_H = 1.1;          // 무대 단 높이
+export const MAX_DANCERS = 20;
 
 // 빔 조명 (무빙 빔): 상단 트러스 8대 + 바닥 4대
 // 기본 각도: 상단은 객석 쪽으로 부채꼴, 하단은 위로 V자 부채꼴
@@ -71,6 +72,20 @@ const beamFrag = /* glsl */`
                             * sin(vWorldPos.x * 1.9 - uTime * 0.45 + vWorldPos.z);
     gl_FragColor = vec4(uColor, att * edge * haze * uOpacity);
   }`;
+
+// 무대 위 조명 위치 (평면도에 빛 자국 그리기용): 워시 18개 + 상단 빔 8개 (+바닥 빔은 위로 쏘므로 null)
+export function lightTargets() {
+  const out = [];
+  for (let i = 0; i < N_WASH; i++) {
+    const row = ROW_DEF[Math.floor(i / COLS)], c = i % COLS;
+    out.push({ x: -row.span / 2 + row.span * (c + 0.5) / COLS, z: row.tz, r: Math.tan(BEAM_ANGLE) * Math.hypot(TRUSS_Y, row.fz - row.tz) });
+  }
+  for (let i = N_WASH; i < N; i++) {
+    const { origin, target, top } = beamAim(i);
+    out.push(top ? { x: target.x, z: target.z, r: Math.tan(BEAM_HALF) * origin.distanceTo(target) * 2.2 } : null);
+  }
+  return out;
+}
 
 export function createStage(container, { onToggle, onRow }) {
   const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
@@ -122,20 +137,21 @@ export function createStage(container, { onToggle, onRow }) {
     scene.add(truss);
   }
 
-  // 댄서 실루엣
+  // 댄서 (최대 MAX_DANCERS명, 섹션이 바뀌면 새 위치로 걸어감)
   const dancerMat = new THREE.MeshStandardMaterial({ color: 0x8a8d96, roughness: 0.7 });
-  const DANCERS = [[0, -0.6], [-1.6, 0.4], [1.6, 0.4], [-3.2, 1.3], [3.2, 1.3], [-1.6, -1.8], [1.6, -1.8]];
   const bodyGeo = new THREE.CapsuleGeometry(0.2, 0.85, 4, 12);
   const headGeo = new THREE.SphereGeometry(0.13, 16, 12);
-  for (const [x, z] of DANCERS) {
+  const dancers = [];
+  for (let i = 0; i < MAX_DANCERS; i++) {
     const g = new THREE.Group();
     const body = new THREE.Mesh(bodyGeo, dancerMat);
     body.position.y = 0.65;
     const head = new THREE.Mesh(headGeo, dancerMat);
     head.position.y = 1.47;
     g.add(body, head);
-    g.position.set(x, 0, z);
+    g.visible = false;
     scene.add(g);
+    dancers.push({ g, from: new THREE.Vector2(), to: new THREE.Vector2(), t0: 0, dur: 0 });
   }
 
   /* ---------- 조명 ---------- */
@@ -408,6 +424,11 @@ export function createStage(container, { onToggle, onRow }) {
       front.cur = front.from + (front.to - front.from) * k;
       for (const s of frontLights) s.intensity = FRONT_INTENSITY * front.cur;
     }
+    for (const d of dancers) {
+      if (!d.g.visible) continue;
+      const k = d.dur > 0 ? ease(Math.min(1, (now - d.t0) / (d.dur * 1000))) : 1;
+      d.g.position.set(d.from.x + (d.to.x - d.from.x) * k, 0, d.from.y + (d.to.y - d.from.y) * k);
+    }
     controls.update();
     placeMarks();
     composer.render();
@@ -463,7 +484,23 @@ export function createStage(container, { onToggle, onRow }) {
     front.dur = fade;
   }
 
-  return { setLights, setSelected, resetView, setHouseLights, toggleHouseLights, setFrontLights };
+  // 댄서 배치: pos = [[x, z], ...] (앞쪽 count명만 보임), dur초 동안 이동
+  function setDancers(pos, count, dur = 0.8) {
+    const now = performance.now();
+    dancers.forEach((d, i) => {
+      const show = i < count && pos[i];
+      if (!show) { d.g.visible = false; return; }
+      const [x, z] = pos[i];
+      if (!d.g.visible) { d.g.position.set(x, 0, z); d.from.set(x, z); d.to.set(x, z); d.dur = 0; d.g.visible = true; return; }
+      if (d.to.x === x && d.to.y === z) return;
+      d.from.set(d.g.position.x, d.g.position.z);
+      d.to.set(x, z);
+      d.t0 = now;
+      d.dur = dur;
+    });
+  }
+
+  return { setLights, setSelected, resetView, setHouseLights, toggleHouseLights, setFrontLights, setDancers };
 }
 
 /* =========================================================

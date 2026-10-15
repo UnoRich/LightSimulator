@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Light Cue</title>
   <meta name="description" content="댄스 공연용 조명 큐 시뮬레이터 — 노래에 맞춰 섹션별 조명을 미리 짜고 조명감독에게 보여주세요.">
-  <link rel="stylesheet" href="style.css?v=13">
+  <link rel="stylesheet" href="style.css?v=14">
 </head>
 <body>
   <header class="topbar">
@@ -70,6 +70,22 @@
           🎵 노래 파일을 올려주세요 (mp3, m4a, wav)<br><small>여기를 누르거나 파일을 끌어다 놓으세요</small>
           <input type="file" id="fileAudio2" accept="audio/*" hidden>
         </label>
+      </div>
+      <div class="formation" id="formation">
+        <svg id="formMap" viewBox="-7 -5 14 11.2" aria-label="인원 배치 평면도"></svg>
+        <div class="form-side">
+          <div class="form-head"><h3>인원 배치 <small class="muted" id="formCue"></small></h3></div>
+          <div class="count-row">
+            인원
+            <button id="dancerMinus" class="small" title="한 명 빼기">−</button>
+            <b id="dancerCount">0</b>명
+            <button id="dancerPlus" class="small" title="한 명 추가 (최대 20명)">+</button>
+          </div>
+          <div class="chip-row" id="formPresets"></div>
+          <button id="formApplyNext" class="small">이 배치를 뒤 섹션 모두에 적용</button>
+          <p class="muted form-tip">번호를 끌어서 옮겨요 (0.25m 단위). 섹션마다 배치가 따로 저장되고, 섹션이 바뀌면 그 자리로 이동해요. 아래쪽이 객석이에요.</p>
+          <p class="form-info" id="formInfo"></p>
+        </div>
       </div>
       <p class="hint">무대를 드래그하면 시점 회전 · 타임라인을 눌러 이동 · 섹션 표시선을 끌어서 시간 조절 · <kbd>Space</kbd> 재생/정지 · <kbd>←</kbd><kbd>→</kbd> 5초 이동 · <kbd>M</kbd> 섹션 추가</p>
     </section>
@@ -169,6 +185,6 @@
       }
     }
   </script>
-  <script type="module" src="app.js?v=13"></script>
+  <script type="module" src="app.js?v=14"></script>
 </body>
 </html>

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Light Cue</title>
   <meta name="description" content="댄스 공연용 조명 큐 시뮬레이터 — 노래에 맞춰 섹션별 조명을 미리 짜고 조명감독에게 보여주세요.">
-  <link rel="stylesheet" href="style.css?v=7">
+  <link rel="stylesheet" href="style.css?v=8">
 </head>
 <body>
   <header class="topbar">
@@ -61,6 +61,9 @@
         <button id="btnAddCue" class="accent" title="지금 위치에 섹션 추가 (M)">+ 여기에 섹션 추가</button>
       </div>
 
+      <p class="demo-note" id="demoNote" hidden>
+        🎬 데모 공연이에요. 노래 없이 조명만 재생돼요 — <b id="demoSong"></b> 파일을 <b>노래 올리기</b>로 올리면 노래와 맞춰서 재생돼요.
+      </p>
       <div class="timeline-wrap" id="timelineWrap">
         <canvas id="timeline"></canvas>
         <label class="timeline-empty" id="timelineEmpty">
@@ -166,6 +169,6 @@
       }
     }
   </script>
-  <script type="module" src="app.js?v=7"></script>
+  <script type="module" src="app.js?v=8"></script>
 </body>
 </html>

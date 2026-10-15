@@ -320,3 +320,9 @@ body.dragging .drop-overlay { display: grid; }
   .hud-next { font-size: 10px; }
   #btnAddCue { margin-left: 0; }
 }
+
+.demo-note {
+  margin: 0 0 10px; padding: 8px 12px; border-radius: 8px; font-size: 13px;
+  background: #222842; border: 1px solid #3b4a8c; color: var(--text);
+}
+.demo-note b { color: var(--accent); }

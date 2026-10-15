@@ -1,4 +1,4 @@
-import { createStage } from './stage3d.js?v=7';
+import { createStage } from './stage3d.js?v=8';
 
 /* =========================================================
    상수
@@ -115,6 +115,85 @@ const BEAM_PRESETS = [
   { name: '빔 교차 (짝수)', make: () => beamsWhere((top, k) => k % 2 === 0, '#1ae0ff') },
   { name: '빔 끄기', make: () => beamsWhere(() => false) },
 ];
+
+/* =========================================================
+   데모 공연: NEON (A2O LITE) 1:40까지, 약 129 BPM 마디에 맞춘 큐
+   노래 파일은 포함하지 않음 → 무음으로 조명만 재생, 파일을 올리면 같이 재생
+   ========================================================= */
+const DEMO = { name: '데모: NEON (A2O LITE) ~1:40', duration: 100, song: 'NEON (A2O LITE)' };
+function makeDemoCues() {
+  const W = {
+    all: (c, b) => fill(c, b),
+    off: () => fill('#ffffff', 0),
+    rows: (rs, c, b) => lightsWhere(r => rs.includes(r), c, b),
+    cols: (cs, c, b) => lightsWhere((r, k) => r > 0 && cs.includes(k), c, b),
+  };
+  const B = {
+    off: () => beamsWhere(() => false),
+    all: (c, b = 100, p = false) => beamsWhere(() => true, c, b, p),
+    top: (c, b = 100, p = false) => beamsWhere(top => top, c, b, p),
+    floor: (c, b = 100, p = false) => beamsWhere(top => !top, c, b, p),
+    alt: (c, b = 100, p = false) => beamsWhere((top, k) => k % 2 === 0, c, b, p),
+  };
+  // 워시 + 빔(여러 개면 켜진 쪽 우선) 합치기
+  const mix = (wash, ...beams) => wash.map((l, i) => {
+    if (!isBeam(i)) return l;
+    return beams.map(bs => bs[i]).find(x => x.b) || L('#ffffff', 0);
+  });
+  const WHITE = '#ffffff', BLUE = '#2a5bff', CYAN = '#1ae0ff', PURPLE = '#8a2aff',
+    RED = '#ff2a2a', PINK = '#ff2ad0', WARM = '#ffd59a', AMBER = '#ffb050';
+  const C = (time, name, fade, lights) => ({ id: uid(), time, name, fade, lights });
+  return [
+    C(0, '암전', 0, mix(W.off(), B.off())),
+    C(2.1, '인트로 - 파란 실루엣', 1.5, mix(W.rows([0], BLUE, 60), B.top(BLUE, 40))),
+    C(5.8, '인트로 - 바닥 빔', 0.3, mix(W.rows([0], BLUE, 60), B.top(BLUE, 40), B.floor(CYAN))),
+    C(9.5, '인트로 - 프리즘', 0.3, mix(W.rows([0], PURPLE, 70), B.top(WHITE, 100, true), B.floor(CYAN))),
+    C(13.25, '인트로 히트', 0, mix(W.all(WHITE, 100), B.all(WHITE, 100, true))),
+    C(15.1, '끊기', 0, mix(W.off(), B.off())),
+    C(16.96, '히트 2', 0, mix(W.all(BLUE, 80), B.all(WHITE))),
+    C(18.81, '쉼 - 센터 핀', 0.8, mix(W.cols([2, 3], WARM, 70).map((l, i) => rowOf(i) === 1 ? l : L(l.c, 0)), B.off())),
+    C(22.5, '벌스 1', 1, mix(W.rows([2], AMBER, 60), B.off())),
+    C(26.17, '벌스 빌드', 0.5, mix(W.all(PURPLE, 50), B.floor(PURPLE, 80))),
+    C(33.53, '벌스 - 교차 빔', 0.3, mix(W.all(PURPLE, 60), B.alt(CYAN, 80))),
+    C(40.94, '브레이크 - 솔로', 0.2, mix(W.cols([2, 3], WHITE, 100).map((l, i) => rowOf(i) === 1 ? l : L(l.c, 0)), B.off())),
+    C(44.65, '브레이크 - 빨간 실루엣', 1, mix(W.rows([0], RED, 100), B.off())),
+    C(48.32, '빌드업', 0.2, mix(W.all(RED, 60), B.top(RED))),
+    C(55.7, '빌드업 - 화이트 빔', 0.1, mix(W.all(RED, 70), B.all(WHITE))),
+    C(59.4, '빌드업 - 프리즘', 0.5, mix(W.all(RED, 40), B.all(WHITE, 100, true))),
+    C(61.23, '후렴 직전', 0.3, mix(W.all(WHITE, 30), B.top(WHITE, 100, true))),
+    C(63.09, '후렴', 0, mix(W.all(BLUE, 100), B.all(WHITE))),
+    C(66.78, '후렴 - 핑크 교차', 0.1, mix(W.all(BLUE, 80), B.alt(PINK))),
+    C(70.47, '후렴 - 핑크 프리즘', 0.1, mix(W.all(PINK, 80), B.all(WHITE, 100, true))),
+    C(74.16, '후렴 끝', 0.1, mix(W.all(BLUE, 100), B.top(WHITE))),
+    C(76.0, '끊기', 0, mix(W.off(), B.off())),
+    C(77.86, '댄스 브레이크', 0, mix(W.all(PURPLE, 70), B.all(WHITE, 100, true))),
+    C(81.55, '댄스 브레이크 - 빨강', 0, mix(W.all(RED, 70), B.top(WHITE), B.floor(RED))),
+    C(85.24, '왼쪽', 0.1, mix(W.cols([0, 1], WHITE, 100), B.top(CYAN))),
+    C(87.07, '오른쪽', 0.1, mix(W.cols([4, 5], WHITE, 100), B.top(CYAN))),
+    C(88.93, '가운데', 0.1, mix(W.cols([2, 3], WHITE, 100), B.all(WHITE, 100, true))),
+    C(92.62, '풀 화이트', 0, mix(W.all(WHITE, 100), B.all(WHITE, 100, true))),
+    C(96.32, '따뜻한 마무리', 0.5, mix(W.all(AMBER, 80), B.top(WARM))),
+    C(100, '엔딩 암전', 1.5, mix(W.off(), B.off())),
+  ];
+}
+function newDemoProject() {
+  return {
+    id: uid(), name: DEMO.name, audioName: '', demo: { duration: DEMO.duration, song: DEMO.song },
+    createdAt: Date.now(), updatedAt: Date.now(), cues: makeDemoCues(),
+  };
+}
+// 노래 없는 데모용 무음 WAV (8kHz 8bit 모노)
+function silentAudioRec(seconds) {
+  const rate = 8000, n = Math.ceil(seconds * rate);
+  const buf = new ArrayBuffer(44 + n), v = new DataView(buf);
+  const str = (o, t) => [...t].forEach((ch, i) => v.setUint8(o + i, ch.charCodeAt(0)));
+  str(0, 'RIFF'); v.setUint32(4, 36 + n, true); str(8, 'WAVE'); str(12, 'fmt ');
+  v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+  v.setUint32(24, rate, true); v.setUint32(28, rate, true); v.setUint16(32, 1, true); v.setUint16(34, 8, true);
+  str(36, 'data'); v.setUint32(40, n, true);
+  new Uint8Array(buf, 44).fill(128);
+  return { buf, type: 'audio/wav', name: '', silent: true };
+}
 
 function normalizeLights(ls) {
   const out = fill('#ffffff', 0);
@@ -783,6 +862,7 @@ async function openProject(id) {
   renderProjectSelect();
   let rec = null;
   try { rec = await DB.getAudio(id); } catch (e) { console.warn(e); }
+  if (!rec && p.demo) rec = silentAudioRec(p.demo.duration);
   await setAudioRec(rec || null);
   audio.currentTime = 0;
   syncToPlayhead(false);
@@ -796,6 +876,9 @@ async function setAudioRec(rec) {
   state.audioUrl = null;
   $('#timelineWrap').classList.toggle('no-audio', !rec);
   $('#audioName').textContent = rec ? rec.name : '';
+  const demo = state.project && state.project.demo;
+  $('#demoNote').hidden = !(demo && rec && rec.silent);
+  if (demo) $('#demoSong').textContent = demo.song;
   if (!rec) {
     audio.removeAttribute('src');
     audio.load();
@@ -888,7 +971,7 @@ async function exportProject() {
   const p = state.project;
   if (!p) return;
   let audioOut = null;
-  if (state.audioRec) {
+  if (state.audioRec && !state.audioRec.silent) {
     const withAudio = confirm(
       '노래 파일도 같이 넣을까요?\n\n' +
       '확인 → 노래 포함 (받는 사람이 파일 하나로 바로 재생 가능, 용량 큼)\n' +
@@ -1105,13 +1188,19 @@ async function init() {
     toast('브라우저 저장소를 쓸 수 없어요 (시크릿 모드?)');
     state.projects = [];
   }
-  if (!state.projects.length) {
-    const p = newProjectData();
+  // 처음 오는 브라우저에는 데모 공연을 한 번 넣고 그걸 열어 보여줌
+  let seeded = true;
+  try { seeded = !!localStorage.getItem('lightcue.demoSeeded'); } catch { /* 무시 */ }
+  let last = null;
+  if (!seeded || !state.projects.length) {
+    const p = newDemoProject();
     state.projects.push(p);
     await DB.putProject(p).catch(() => {});
+    try { localStorage.setItem('lightcue.demoSeeded', '1'); } catch { /* 무시 */ }
+    last = p.id;
+  } else {
+    try { last = localStorage.getItem('lightcue.last'); } catch { /* 무시 */ }
   }
-  let last = null;
-  try { last = localStorage.getItem('lightcue.last'); } catch { /* 무시 */ }
   const pick = state.projects.find(p => p.id === last) || state.projects.slice().sort((a, b) => b.updatedAt - a.updatedAt)[0];
   await openProject(pick.id);
   renderPlayButtons();

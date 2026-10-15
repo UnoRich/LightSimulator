@@ -1,4 +1,4 @@
-import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=30';
+import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=31';
 
 /* =========================================================
    상수
@@ -1159,27 +1159,31 @@ function applyFormation(key) {
   renderStage(currentLights(), 0.15);
   save();
 }
-// 바로 앞 배치를 지금 보이는 배치에 복사 (앞 동선 → 같은 섹션 시작 배치 → 앞 섹션의 마지막 배치 순)
+// 지금보다 앞에 있는 배치 중, 지금 배치와 다른 가장 가까운 배치를 복사
+// (같은 섹션의 앞 동선 → 시작 배치 → 앞 섹션들 순서로 거슬러 올라감)
 function copyPrevFormation() {
   const cue = activeCue();
   if (!cue) { toast('먼저 섹션을 추가하세요'); return; }
   const key = dancerTarget().key;
-  let prev = null;
-  if (key.includes(':')) {
-    const i = +key.split(':')[1];
-    prev = i > 0 ? cue.steps[i - 1].pos : cue.pos;
-  } else {
-    const before = cues().filter(c => c.time < cue.time).pop();
-    if (before) prev = before.steps && before.steps.length ? before.steps[before.steps.length - 1].pos : before.pos;
-  }
-  if (!prev) { toast('앞에 있는 배치가 없어요'); return; }
   const target = currentPos();
-  target.splice(0, MAX_DANCERS, ...prev.map(p => p.slice()));
+  const n = dancerCount();
+  // 시간순 전체 배치 목록
+  const all = [];
+  for (const c of cues()) {
+    all.push({ key: c.id, t: c.time, pos: c.pos, label: `'${c.name || '(이름 없음)'}' 시작 배치` });
+    (c.steps || []).forEach((st, i) => all.push({ key: `${c.id}:${i}`, t: st.t, pos: st.pos, label: `${fmt(st.t)} 동선` }));
+  }
+  const idx = all.findIndex(f => f.key === key);
+  const same = (a, b) => a.slice(0, n).every((p, i) => p[0] === b[i][0] && p[1] === b[i][1]);
+  const prev = all.slice(0, idx).reverse().find(f => !same(f.pos, target));
+  if (!prev) { toast(idx > 0 ? '앞 배치들이 지금 배치와 같아요' : '앞에 있는 배치가 없어요'); return; }
+  target.splice(0, MAX_DANCERS, ...prev.pos.map(p => p.slice()));
   state.danceKey = null;
   renderStage(currentLights(), 0.15);
   save();
-  toast('바로 앞 배치를 복사했어요');
+  toast(`${prev.label}${prev.label.endsWith('동선') ? '을' : '를'} 복사했어요`);
 }
+
 
 /* =========================================================
    섹션 목록

@@ -35,6 +35,8 @@ const BEAM_FLOOR_X = [-4.8, -1.6, 1.6, 4.8], BEAM_FLOOR_Z = -3.7;
 const BEAM_HALF = 0.03;       // 빔 반각 (아주 좁게)
 const BEAM_OP = 0.85;
 const PRISM_FACETS = 8, PRISM_SPREAD = 0.12, PRISM_SPEED = 0.9; // 프리즘: 갈래 수, 벌어짐(라디안), 회전 속도
+// 무빙: 좌우로 흔들기 (폭 m, 한 번 왕복 초). 이웃한 빔은 반대 방향으로 시작해서 서로 교차
+const MOVE_SWING = { top: 2.6, floor: 3.2 }, MOVE_PERIOD = 3.2;
 // 센터 모으기: 빔이 무대 가운데로 모임 (상단은 바닥 센터, 하단은 무대 위 공중 한 점)
 function beamFocus(i, origin, top) {
   return top ? new THREE.Vector3(origin.x * 0.16, 0, 0.5) : new THREE.Vector3(origin.x * 0.12, 8.2, 0.4);
@@ -335,9 +337,10 @@ export function createStage(container, { onToggle, onRow }) {
       spot: null, pool, beam, lens, target, origin, spin, pmat, isBeam: true,
       aim, facets, sparks, top, baseLen: len, mat,
       home: target.clone(), focus: beamFocus(i, origin, top), aimAt: target.clone(),
-      cur: { r: 0, g: 0, b: 0, o: 0, p: 0, f: 0 },
-      from: { r: 0, g: 0, b: 0, o: 0, p: 0, f: 0 },
-      to: { r: 0, g: 0, b: 0, o: 0, p: 0, f: 0 },
+      dir: ((top ? i - N_WASH : i - N_WASH - N_BEAM_TOP) % 2) ? -1 : 1, mvT0: 0,
+      cur: { r: 0, g: 0, b: 0, o: 0, p: 0, f: 0, m: 0 },
+      from: { r: 0, g: 0, b: 0, o: 0, p: 0, f: 0, m: 0 },
+      to: { r: 0, g: 0, b: 0, o: 0, p: 0, f: 0, m: 0 },
       t0: 0, dur: 0,
     });
   }
@@ -435,8 +438,13 @@ export function createStage(container, { onToggle, onRow }) {
       L.beam.visible = u.uOpacity.value > 0.002;
       if (L.isBeam) {
         cur.f = from.f + (to.f - from.f) * k;
-        // 조준점: 기본 위치 ↔ 센터 모으기
+        cur.m = from.m + (to.m - from.m) * k;
+        // 조준점: 기본 위치 ↔ 센터 모으기, 무빙이면 좌우로 흔들기
         L.aimAt.lerpVectors(L.home, L.focus, cur.f);
+        if (cur.m > 0.001) {
+          const ph = ((now - L.mvT0) / 1000) * Math.PI * 2 / MOVE_PERIOD;
+          L.aimAt.x += Math.sin(ph) * L.dir * cur.m * (L.top ? MOVE_SWING.top : MOVE_SWING.floor);
+        }
         tmpDir.subVectors(L.aimAt, L.origin);
         const len = tmpDir.length();
         L.aim.quaternion.setFromUnitVectors(down, tmpDir.normalize());
@@ -495,12 +503,14 @@ export function createStage(container, { onToggle, onRow }) {
       Object.assign(L.from, L.cur);
       tmp.set(l.c); // sRGB hex → 선형 색공간
       const o = l.b <= 0 ? 0 : Math.pow(l.b / 100 * MAX_LEVEL, 1.4);
-      Object.assign(L.to, { r: tmp.r, g: tmp.g, b: tmp.b, o, p: l.p ? 1 : 0, f: l.f ? 1 : 0 });
+      const m = l.m ? 1 : 0;
+      if (L.isBeam && m && !L.to.m) L.mvT0 = now; // 무빙을 켤 때 가운데에서 시작
+      Object.assign(L.to, { r: tmp.r, g: tmp.g, b: tmp.b, o, p: l.p ? 1 : 0, f: l.f ? 1 : 0, m });
       L.t0 = now;
       L.dur = fade;
 
       const { mark } = marks[i];
-      mark.title = `${ROW_NAMES[rowOf(i)]} ${colOf(i) + 1}번 · 밝기 ${l.b}%${l.p ? ' · 프리즘' : ''}${l.f ? ' · 센터 모으기' : ''}`;
+      mark.title = `${ROW_NAMES[rowOf(i)]} ${colOf(i) + 1}번 · 밝기 ${l.b}%${l.p ? ' · 프리즘' : ''}${l.f ? ' · 센터 모으기' : ''}${l.m ? ' · 무빙' : ''}`;
     });
   }
 

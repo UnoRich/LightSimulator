@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Light Cue</title>
   <meta name="description" content="댄스 공연용 조명 큐 시뮬레이터 — 노래에 맞춰 섹션별 조명을 미리 짜고 조명감독에게 보여주세요.">
-  <link rel="stylesheet" href="style.css?v=42">
+  <link rel="stylesheet" href="style.css?v=43">
 </head>
 <body>
   <header class="topbar">
@@ -114,8 +114,12 @@
             <button class="chip" data-bri="50">50</button>
             <button class="chip" data-bri="70">70</button>
             <button class="chip" data-bri="100">100</button>
-            <button class="chip prism-btn" id="btnPrism" title="선택한 빔 조명에 프리즘 켜기/끄기 (선택 없으면 켜진 빔 전체)">💎 프리즘</button>
-            <button class="chip prism-btn" id="btnFocus" title="선택한 빔을 무대 센터로 모으기 (선택 없으면 켜진 빔 전체). 프리즘과 같이 쓰면 바닥에 프리즘 무늬가 생겨요">🎯 센터 모으기</button>
+          </div>
+          <div class="beam-modes">
+            <span class="bm-label">빔 모드 변경</span>
+            <button class="beam-mode" id="btnPrism" title="선택한 빔 조명에 프리즘 켜기/끄기 (선택 없으면 켜진 빔 전체)">💎 프리즘</button>
+            <button class="beam-mode" id="btnFocus" title="선택한 빔을 무대 센터로 모으기 (선택 없으면 켜진 빔 전체). 프리즘과 같이 쓰면 바닥에 프리즘 무늬가 생겨요">🎯 센터 모으기</button>
+            <button class="beam-mode" id="btnMove" title="선택한 빔이 좌우로 움직여요. 이웃한 빔은 반대 방향으로 움직여서 교차해요">↔ 무빙</button>
           </div>
         </div>
       </div>
@@ -194,6 +198,6 @@
       }
     }
   </script>
-  <script type="module" src="app.js?v=42"></script>
+  <script type="module" src="app.js?v=43"></script>
 </body>
 </html>

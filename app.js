@@ -1,6 +1,6 @@
-import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=42';
-import { GIRLS_DEMO } from './demo-girls.js?v=42';
-import { DRILL_DEMO } from './demo-drill.js?v=42';
+import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=43';
+import { GIRLS_DEMO } from './demo-girls.js?v=43';
+import { DRILL_DEMO } from './demo-drill.js?v=43';
 
 /* =========================================================
    상수
@@ -140,11 +140,11 @@ function toast(msg) {
 /* =========================================================
    조명 데이터 / 프리셋
    ========================================================= */
-// c: 색, b: 밝기(0~100), p: 프리즘, f: 센터 모으기 (p/f는 빔 조명만 의미 있음)
-const L = (c, b, p = false, f = false) => ({ c, b, p, f });
+// c: 색, b: 밝기(0~100), p: 프리즘, f: 센터 모으기, m: 무빙 (p/f/m은 빔 조명만 의미 있음)
+const L = (c, b, p = false, f = false, m = false) => ({ c, b, p, f, m });
 // 워시 조명만 c/b로 채우고 빔은 꺼둠
 const fill = (c, b) => Array.from({ length: N }, (_, i) => L(c, isBeam(i) ? 0 : b));
-const cloneLights = ls => ls.map(l => L(l.c, l.b, !!l.p, !!l.f));
+const cloneLights = ls => ls.map(l => L(l.c, l.b, !!l.p, !!l.f, !!l.m));
 function lightsWhere(pred, c = '#ffffff', b = 100) {
   return Array.from({ length: N }, (_, i) => !isBeam(i) && pred(rowOf(i), colOf(i)) ? L(c, b) : L(c, 0));
 }
@@ -189,7 +189,7 @@ function cuesFromData(data) {
   return data.map(c => {
     const cue = {
       id: uid(), time: c.time, name: c.name, fade: c.fade, front: c.front,
-      lights: c.lights.map(([col, b, p, f]) => L(col, b, !!p, !!f)),
+      lights: c.lights.map(([col, b, p, f, m]) => L(col, b, !!p, !!f, !!m)),
       pos: fullPos(c.pos),
     };
     if (c.move) cue.move = c.move;
@@ -258,7 +258,7 @@ function normalizeLights(ls) {
       if (!l) continue;
       if (typeof l.c === 'string' && /^#[0-9a-f]{6}$/i.test(l.c)) out[i].c = l.c.toLowerCase();
       if (typeof l.b === 'number' && isFinite(l.b)) out[i].b = clamp(Math.round(l.b), 0, 100);
-      if (isBeam(i)) { out[i].p = !!l.p; out[i].f = !!l.f; }
+      if (isBeam(i)) { out[i].p = !!l.p; out[i].f = !!l.f; out[i].m = !!l.m; }
     }
   }
   return out;
@@ -1076,11 +1076,12 @@ function miniGrid(lights, onPick, sel, front, onFront) {
     if (isBeam(i)) d.classList.add('beam');
     if (l.p && l.b) d.classList.add('prism');
     if (l.f && l.b) d.classList.add('focus');
+    if (l.m && l.b) d.classList.add('moving');
     if (l.b) { d.style.background = l.c; d.style.opacity = 0.3 + 0.7 * l.b / 100; }
     else { d.style.background = '#3a3d47'; d.style.opacity = 0.5; }
     if (sel && sel.has(i)) d.classList.add('sel');
     if (onPick) {
-      d.title = `${ROW_NAMES[r]} ${k + 1}번 · 밝기 ${l.b}%${l.p ? ' · 프리즘' : ''}${l.f ? ' · 센터 모으기' : ''}`;
+      d.title = `${ROW_NAMES[r]} ${k + 1}번 · 밝기 ${l.b}%${l.p ? ' · 프리즘' : ''}${l.f ? ' · 센터 모으기' : ''}${l.m ? ' · 무빙' : ''}`;
       d.addEventListener('click', e => { e.stopPropagation(); onPick(i); });
     }
     g.append(d);
@@ -1252,6 +1253,7 @@ function renderSelection() {
   const pb = prismTargets();
   $('#btnPrism').classList.toggle('on', pb.length > 0 && pb.every(i => cue.lights[i].p));
   $('#btnFocus').classList.toggle('on', pb.length > 0 && pb.every(i => cue.lights[i].f));
+  $('#btnMove').classList.toggle('on', pb.length > 0 && pb.every(i => cue.lights[i].m));
   const first = cue.lights[targets()[0]];
   const bri = $('#bri');
   if (document.activeElement !== bri) { bri.value = first.b; }
@@ -1304,7 +1306,7 @@ function prismTargets() {
   const lit = cue ? BEAM_IDX.filter(i => cue.lights[i].b) : [];
   return lit.length ? lit : BEAM_IDX;
 }
-// key: 'p' 프리즘 / 'f' 센터 모으기
+// key: 'p' 프리즘 / 'f' 센터 모으기 / 'm' 무빙
 function toggleBeamFlag(key, label) {
   const cue = activeCue();
   if (!cue) return;
@@ -1705,6 +1707,7 @@ function bindEvents() {
   });
   $('#btnPrism').addEventListener('click', () => toggleBeamFlag('p', '프리즘'));
   $('#btnFocus').addEventListener('click', () => toggleBeamFlag('f', '센터 모으기'));
+  $('#btnMove').addEventListener('click', () => toggleBeamFlag('m', '무빙'));
   $('#dancerMinus').addEventListener('click', () => setDancerCount(dancerCount() - 1));
   $('#dancerPlus').addEventListener('click', () => setDancerCount(dancerCount() + 1));
   $('#formCopyPrev').addEventListener('click', copyPrevFormation);

@@ -1,6 +1,6 @@
-import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=51';
-import { GIRLS_DEMO, GIRLS_DEMO_NAMES, GIRLS_DEMO_COUNT } from './demo-girls.js?v=51';
-import { DRILL_DEMO, DRILL_DEMO_NAMES, DRILL_DEMO_COUNT } from './demo-drill.js?v=51';
+import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=52';
+import { GIRLS_DEMO, GIRLS_DEMO_NAMES, GIRLS_DEMO_COUNT } from './demo-girls.js?v=52';
+import { DRILL_DEMO, DRILL_DEMO_NAMES, DRILL_DEMO_COUNT } from './demo-drill.js?v=52';
 
 /* =========================================================
    상수
@@ -1620,7 +1620,7 @@ async function importFile(file) {
   let data;
   try { data = JSON.parse(await file.text()); }
   catch { toast('파일을 읽을 수 없어요'); return; }
-  if (!data || data.app !== 'light-cue' || !data.project) { toast('Light Cue 파일이 아니에요'); return; }
+  if (!data || data.app !== 'light-cue' || !data.project) { toast('LightSimulator 공연 파일이 아니에요'); return; }
 
   const src = data.project;
   const p = {

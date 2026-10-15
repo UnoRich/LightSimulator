@@ -55,7 +55,18 @@ kbd {
   display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center;
   padding: 10px 16px; border-bottom: 1px solid var(--line); background: var(--panel);
 }
-.brand { font-weight: 700; font-size: 16px; }
+.brand { font-weight: 700; font-size: 16px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.brand-sep { color: var(--muted); font-weight: 400; }
+.brand-ig { display: inline-flex; align-items: center; gap: 5px; color: #ff8fc7; text-decoration: none; }
+.brand-ig:hover { color: #ffc1df; text-decoration: underline; text-underline-offset: 3px; }
+.ico { width: 16px; height: 16px; flex: none; }
+.btn-link {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 12px; border-radius: 8px; text-decoration: none; color: inherit;
+  background: var(--panel-2); border: 1px solid var(--line); font-size: 14px;
+}
+.btn-link:hover { border-color: #444a59; background: #252935; }
+.btn-link .ico { color: #4f9bff; }
 .project-bar, .io-bar { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
 .project-bar select { max-width: 220px; }
 .io-bar { margin-left: auto; }

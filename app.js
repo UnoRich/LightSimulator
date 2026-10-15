@@ -1,4 +1,4 @@
-import { createStage } from './stage3d.js?v=8';
+import { createStage } from './stage3d.js?v=9';
 
 /* =========================================================
    상수
@@ -117,23 +117,27 @@ const BEAM_PRESETS = [
 ];
 
 /* =========================================================
-   데모 공연: NEON (A2O LITE) 1:40까지, 약 129 BPM 마디에 맞춘 큐
+   데모 공연: 힙합 드릴 비트 1:40까지, 약 136 BPM 마디에 맞춘 큐
+   (암전에서 시작해 서서히 밝아지는 인트로 → 0:14 드롭)
    노래 파일은 포함하지 않음 → 무음으로 조명만 재생, 파일을 올리면 같이 재생
    ========================================================= */
-const DEMO = { name: '데모: NEON (A2O LITE) ~1:40', duration: 100, song: 'NEON (A2O LITE)' };
+const DEMO = { name: '데모: 힙합 드릴 ~1:40', duration: 100, song: 'BAND4BAND (Central Cee ft. Lil Baby)' };
 function makeDemoCues() {
+  // 여러 워시 레이어 합치기: 같은 조명은 앞쪽 레이어 우선
+  const layer = (...ws) => ws[0].map((l, i) => ws.map(w => w[i]).find(x => x.b) || L('#ffffff', 0));
   const W = {
     all: (c, b) => fill(c, b),
     off: () => fill('#ffffff', 0),
     rows: (rs, c, b) => lightsWhere(r => rs.includes(r), c, b),
     cols: (cs, c, b) => lightsWhere((r, k) => r > 0 && cs.includes(k), c, b),
+    pin: (c, b) => lightsWhere((r, k) => r === 1 && (k === 2 || k === 3), c, b),
   };
   const B = {
     off: () => beamsWhere(() => false),
     all: (c, b = 100, p = false) => beamsWhere(() => true, c, b, p),
     top: (c, b = 100, p = false) => beamsWhere(top => top, c, b, p),
     floor: (c, b = 100, p = false) => beamsWhere(top => !top, c, b, p),
-    alt: (c, b = 100, p = false) => beamsWhere((top, k) => k % 2 === 0, c, b, p),
+    alt: (c, b = 100, p = false) => beamsWhere((top, k) => top && k % 2 === 0, c, b, p),
   };
   // 워시 + 빔(여러 개면 켜진 쪽 우선) 합치기
   const mix = (wash, ...beams) => wash.map((l, i) => {
@@ -141,39 +145,41 @@ function makeDemoCues() {
     return beams.map(bs => bs[i]).find(x => x.b) || L('#ffffff', 0);
   });
   const WHITE = '#ffffff', BLUE = '#2a5bff', CYAN = '#1ae0ff', PURPLE = '#8a2aff',
-    RED = '#ff2a2a', PINK = '#ff2ad0', WARM = '#ffd59a', AMBER = '#ffb050';
+    RED = '#ff2a2a', PINK = '#ff2ad0', WARM = '#ffd59a';
   const C = (time, name, fade, lights) => ({ id: uid(), time, name, fade, lights });
   return [
     C(0, '암전', 0, mix(W.off(), B.off())),
-    C(2.1, '인트로 - 파란 실루엣', 1.5, mix(W.rows([0], BLUE, 60), B.top(BLUE, 40))),
-    C(5.8, '인트로 - 바닥 빔', 0.3, mix(W.rows([0], BLUE, 60), B.top(BLUE, 40), B.floor(CYAN))),
-    C(9.5, '인트로 - 프리즘', 0.3, mix(W.rows([0], PURPLE, 70), B.top(WHITE, 100, true), B.floor(CYAN))),
-    C(13.25, '인트로 히트', 0, mix(W.all(WHITE, 100), B.all(WHITE, 100, true))),
-    C(15.1, '끊기', 0, mix(W.off(), B.off())),
-    C(16.96, '히트 2', 0, mix(W.all(BLUE, 80), B.all(WHITE))),
-    C(18.81, '쉼 - 센터 핀', 0.8, mix(W.cols([2, 3], WARM, 70).map((l, i) => rowOf(i) === 1 ? l : L(l.c, 0)), B.off())),
-    C(22.5, '벌스 1', 1, mix(W.rows([2], AMBER, 60), B.off())),
-    C(26.17, '벌스 빌드', 0.5, mix(W.all(PURPLE, 50), B.floor(PURPLE, 80))),
-    C(33.53, '벌스 - 교차 빔', 0.3, mix(W.all(PURPLE, 60), B.alt(CYAN, 80))),
-    C(40.94, '브레이크 - 솔로', 0.2, mix(W.cols([2, 3], WHITE, 100).map((l, i) => rowOf(i) === 1 ? l : L(l.c, 0)), B.off())),
-    C(44.65, '브레이크 - 빨간 실루엣', 1, mix(W.rows([0], RED, 100), B.off())),
-    C(48.32, '빌드업', 0.2, mix(W.all(RED, 60), B.top(RED))),
-    C(55.7, '빌드업 - 화이트 빔', 0.1, mix(W.all(RED, 70), B.all(WHITE))),
-    C(59.4, '빌드업 - 프리즘', 0.5, mix(W.all(RED, 40), B.all(WHITE, 100, true))),
-    C(61.23, '후렴 직전', 0.3, mix(W.all(WHITE, 30), B.top(WHITE, 100, true))),
-    C(63.09, '후렴', 0, mix(W.all(BLUE, 100), B.all(WHITE))),
-    C(66.78, '후렴 - 핑크 교차', 0.1, mix(W.all(BLUE, 80), B.alt(PINK))),
-    C(70.47, '후렴 - 핑크 프리즘', 0.1, mix(W.all(PINK, 80), B.all(WHITE, 100, true))),
-    C(74.16, '후렴 끝', 0.1, mix(W.all(BLUE, 100), B.top(WHITE))),
-    C(76.0, '끊기', 0, mix(W.off(), B.off())),
-    C(77.86, '댄스 브레이크', 0, mix(W.all(PURPLE, 70), B.all(WHITE, 100, true))),
-    C(81.55, '댄스 브레이크 - 빨강', 0, mix(W.all(RED, 70), B.top(WHITE), B.floor(RED))),
-    C(85.24, '왼쪽', 0.1, mix(W.cols([0, 1], WHITE, 100), B.top(CYAN))),
-    C(87.07, '오른쪽', 0.1, mix(W.cols([4, 5], WHITE, 100), B.top(CYAN))),
-    C(88.93, '가운데', 0.1, mix(W.cols([2, 3], WHITE, 100), B.all(WHITE, 100, true))),
-    C(92.62, '풀 화이트', 0, mix(W.all(WHITE, 100), B.all(WHITE, 100, true))),
-    C(96.32, '따뜻한 마무리', 0.5, mix(W.all(AMBER, 80), B.top(WARM))),
-    C(100, '엔딩 암전', 1.5, mix(W.off(), B.off())),
+    C(1.81, '페이드 인 1 - 뒷줄 희미하게', 3, mix(W.rows([0], BLUE, 15), B.off())),
+    C(5.22, '페이드 인 2 - 중간줄', 3, mix(layer(W.rows([0], BLUE, 40), W.rows([1], BLUE, 15)), B.off())),
+    C(8.66, '페이드 인 3 - 빔 깨어남', 3, mix(layer(W.rows([0], BLUE, 60), W.rows([1], BLUE, 30)), B.top(WHITE, 20))),
+    C(12.24, '드롭 직전', 1.5, mix(W.all(WHITE, 15), B.top(WHITE, 60))),
+    C(14.05, '드롭', 0, mix(W.all(WHITE, 100), B.all(WHITE))),
+    C(15.81, '빨강 + 교차 빔', 0.1, mix(W.all(RED, 80), B.alt(WHITE))),
+    C(19.37, '바닥 빔', 0.1, mix(W.all(RED, 60), B.floor(WHITE))),
+    C(22.78, '빨간 실루엣 + 프리즘', 0.1, mix(W.rows([0], RED, 100), B.all(WHITE, 100, true))),
+    C(26.22, '훅 끝', 0.1, mix(W.all(WHITE, 70), B.top(WHITE))),
+    C(28.0, '808 멈춤 - 핀', 0, mix(W.pin(WHITE, 40), B.off())),
+    C(29.84, '재드롭', 0, mix(W.all(BLUE, 100), B.all(WHITE))),
+    C(31.37, '벌스 1', 0.3, mix(W.all(BLUE, 60), B.floor(CYAN))),
+    C(38.24, '벌스 1 - 교차 빔', 0.1, mix(W.all(BLUE, 60), B.alt(WHITE), B.floor(CYAN))),
+    C(41.66, '벌스 1 - 보라', 0.3, mix(W.all(PURPLE, 60), B.top(PURPLE))),
+    C(48.51, '벌스 1 - 프리즘', 0.2, mix(W.all(RED, 70), B.top(WHITE, 100, true))),
+    C(53.64, '벌스 1 끝', 0.1, mix(W.all(WHITE, 50), B.all(WHITE, 100, true))),
+    C(55.36, '쉼', 0.2, mix(W.off(), B.off())),
+    C(56.63, '벌스 2 - 빨간 실루엣', 0, mix(W.rows([0], RED, 100), B.floor(RED))),
+    C(62.23, '벌스 2 - 웜', 0.5, mix(W.all(WARM, 50), B.top(WARM, 80))),
+    C(69.06, '훅 2', 0, mix(W.all(BLUE, 100), B.all(WHITE))),
+    C(72.49, '훅 2 - 핑크 교차', 0.1, mix(W.all(BLUE, 80), B.alt(PINK))),
+    C(75.88, '훅 2 - 핑크 프리즘', 0.1, mix(W.all(PINK, 70), B.all(WHITE, 100, true))),
+    C(79.34, '왼쪽', 0.1, mix(W.cols([0, 1], WHITE, 100), B.top(CYAN))),
+    C(81.08, '오른쪽', 0.1, mix(W.cols([4, 5], WHITE, 100), B.top(CYAN))),
+    C(82.78, '가운데', 0.1, mix(W.cols([2, 3], WHITE, 100), B.all(WHITE, 100, true))),
+    C(86.22, '빨강 + 바닥 빔', 0, mix(W.all(RED, 80), B.top(WHITE), B.floor(RED))),
+    C(89.63, '화이트 빔', 0.1, mix(W.all(WHITE, 40), B.all(WHITE))),
+    C(93.09, '보라 프리즘', 0.1, mix(W.all(PURPLE, 80), B.all(WHITE, 100, true))),
+    C(96.41, '빨강 풀', 0, mix(W.all(RED, 100), B.all(WHITE))),
+    C(98.13, '마무리 풀 화이트', 0, mix(W.all(WHITE, 100), B.all(WHITE, 100, true))),
+    C(100, '엔딩 암전', 2, mix(W.off(), B.off())),
   ];
 }
 function newDemoProject() {
@@ -1190,13 +1196,13 @@ async function init() {
   }
   // 처음 오는 브라우저에는 데모 공연을 한 번 넣고 그걸 열어 보여줌
   let seeded = true;
-  try { seeded = !!localStorage.getItem('lightcue.demoSeeded'); } catch { /* 무시 */ }
+  try { seeded = !!localStorage.getItem('lightcue.demoSeeded.v2'); } catch { /* 무시 */ }
   let last = null;
   if (!seeded || !state.projects.length) {
     const p = newDemoProject();
     state.projects.push(p);
     await DB.putProject(p).catch(() => {});
-    try { localStorage.setItem('lightcue.demoSeeded', '1'); } catch { /* 무시 */ }
+    try { localStorage.setItem('lightcue.demoSeeded.v2', '1'); } catch { /* 무시 */ }
     last = p.id;
   } else {
     try { last = localStorage.getItem('lightcue.last'); } catch { /* 무시 */ }

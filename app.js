@@ -1,4 +1,4 @@
-import { createStage } from './stage3d.js?v=11';
+import { createStage } from './stage3d.js?v=13';
 
 /* =========================================================
    상수
@@ -121,7 +121,7 @@ const BEAM_PRESETS = [
    (암전에서 시작해 서서히 밝아지는 인트로 → 0:14 드롭)
    노래 파일은 포함하지 않음 → 무음으로 조명만 재생, 파일을 올리면 같이 재생
    ========================================================= */
-const DEMO = { name: '데모: 힙합 드릴 ~1:40', duration: 100, song: 'BAND4BAND (Central Cee ft. Lil Baby)' };
+const DEMO = { name: '데모: 힙합 드릴 ~1:40', duration: 100, song: 'BAND4BAND (Central Cee ft. Lil Baby)', version: 4 };
 function makeDemoCues() {
   // 여러 워시 레이어 합치기: 같은 조명은 앞쪽 레이어 우선
   const layer = (...ws) => ws[0].map((l, i) => ws.map(w => w[i]).find(x => x.b) || L('#ffffff', 0));
@@ -154,13 +154,9 @@ function makeDemoCues() {
     C(8.66, '페이드 인 3 - 빔 깨어남', 3, mix(layer(W.rows([0], BLUE, 60), W.rows([1], BLUE, 30)), B.top(WHITE, 20)), 0),
     C(12.24, '드롭 직전', 1.5, mix(W.all(WHITE, 15), B.top(WHITE, 60)), 50),
     C(14.05, '드롭', 0, mix(W.all(WHITE, 100), B.all(WHITE))),
-    C(15.81, '빨강 + 교차 빔', 0.1, mix(W.all(RED, 80), B.alt(WHITE))),
-    C(19.37, '바닥 빔', 0.1, mix(W.all(RED, 60), B.floor(WHITE))),
-    C(22.78, '빨간 실루엣 + 프리즘', 0.1, mix(W.rows([0], RED, 100), B.all(WHITE, 100, true)), 0),
-    C(26.22, '훅 끝', 0.1, mix(W.all(WHITE, 70), B.top(WHITE))),
+    C(22.78, '빨강 + 프리즘', 0.3, mix(W.all(RED, 80), B.all(WHITE, 100, true))),
     C(28.0, '808 멈춤 - 핀', 0, mix(W.pin(WHITE, 40), B.off()), 0),
-    C(29.84, '재드롭', 0, mix(W.all(BLUE, 100), B.all(WHITE))),
-    C(31.37, '벌스 1', 0.3, mix(W.all(BLUE, 60), B.floor(CYAN))),
+    C(29.84, '재드롭 - 벌스 1', 0, mix(W.all(BLUE, 80), B.all(WHITE), B.floor(CYAN))),
     C(38.24, '벌스 1 - 교차 빔', 0.1, mix(W.all(BLUE, 60), B.alt(WHITE), B.floor(CYAN))),
     C(41.66, '벌스 1 - 보라', 0.3, mix(W.all(PURPLE, 60), B.top(PURPLE))),
     C(48.51, '벌스 1 - 프리즘', 0.2, mix(W.all(RED, 70), B.top(WHITE, 100, true))),
@@ -184,10 +180,21 @@ function makeDemoCues() {
 }
 function newDemoProject() {
   return {
-    id: uid(), name: DEMO.name, audioName: '', demo: { duration: DEMO.duration, song: DEMO.song },
+    id: uid(), name: DEMO.name, audioName: '', demo: { duration: DEMO.duration, song: DEMO.song, version: DEMO.version },
     createdAt: Date.now(), updatedAt: Date.now(), cues: makeDemoCues(),
   };
 }
+// 데모 기본 음악: 'Demo music/demo.mp3'가 있으면 데모 공연에서 그걸 재생 (없으면 무음)
+const DEMO_MUSIC_URL = 'Demo music/demo.mp3';
+let demoMusicP = null;
+function loadDemoMusic() {
+  if (!demoMusicP) demoMusicP = fetch(encodeURI(DEMO_MUSIC_URL), { cache: 'no-cache' })
+    .then(r => r.ok ? r.arrayBuffer() : null)
+    .then(buf => buf && buf.byteLength ? { buf, type: 'audio/mpeg', name: '데모 음악', bundled: true } : null)
+    .catch(() => null);
+  return demoMusicP.then(rec => rec && { ...rec, buf: rec.buf.slice(0) });
+}
+
 // 노래 없는 데모용 무음 WAV (8kHz 8bit 모노)
 function silentAudioRec(seconds) {
   const rate = 8000, n = Math.ceil(seconds * rate);
@@ -901,7 +908,7 @@ async function openProject(id) {
   renderProjectSelect();
   let rec = null;
   try { rec = await DB.getAudio(id); } catch (e) { console.warn(e); }
-  if (!rec && p.demo) rec = silentAudioRec(p.demo.duration);
+  if (!rec && p.demo) rec = (await loadDemoMusic()) || silentAudioRec(p.demo.duration);
   await setAudioRec(rec || null);
   audio.currentTime = 0;
   syncToPlayhead(false);
@@ -1229,15 +1236,18 @@ async function init() {
     toast('브라우저 저장소를 쓸 수 없어요 (시크릿 모드?)');
     state.projects = [];
   }
-  // 처음 오는 브라우저에는 데모 공연을 한 번 넣고 그걸 열어 보여줌
-  let seeded = true;
-  try { seeded = !!localStorage.getItem('lightcue.demoSeeded.v3'); } catch { /* 무시 */ }
+  // 처음 오는 브라우저에는 데모 공연을 넣고 그걸 열어 보여줌.
+  // 데모가 새 버전이면 가장 최근 데모 공연의 큐만 바꿔치기 (올려둔 노래는 그대로 유지)
+  let seenVer = 0;
+  try { seenVer = +localStorage.getItem('lightcue.demoVersion') || 0; } catch { /* 무시 */ }
   let last = null;
-  if (!seeded || !state.projects.length) {
-    const p = newDemoProject();
-    state.projects.push(p);
+  if (seenVer !== DEMO.version || !state.projects.length) {
+    const fresh = newDemoProject();
+    const old = state.projects.filter(p => p.demo).sort((a, b) => b.createdAt - a.createdAt)[0];
+    const p = old ? Object.assign(old, { name: fresh.name, demo: fresh.demo, cues: fresh.cues, updatedAt: Date.now() }) : fresh;
+    if (!old) state.projects.push(p);
     await DB.putProject(p).catch(() => {});
-    try { localStorage.setItem('lightcue.demoSeeded.v3', '1'); } catch { /* 무시 */ }
+    try { localStorage.setItem('lightcue.demoVersion', String(DEMO.version)); } catch { /* 무시 */ }
     last = p.id;
   } else {
     try { last = localStorage.getItem('lightcue.last'); } catch { /* 무시 */ }

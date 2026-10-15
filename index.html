@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Light Cue</title>
   <meta name="description" content="댄스 공연용 조명 큐 시뮬레이터 — 노래에 맞춰 섹션별 조명을 미리 짜고 조명감독에게 보여주세요.">
-  <link rel="stylesheet" href="style.css?v=19">
+  <link rel="stylesheet" href="style.css?v=20">
 </head>
 <body>
   <header class="topbar">
@@ -13,10 +13,7 @@
     <div class="project-bar">
       <select id="projectSelect" aria-label="공연 선택"></select>
       <button id="btnNewProject" title="새 공연 만들기">+ 새 공연</button>
-      <div class="demo-wrap">
-        <button id="btnDemo" title="데모 공연 불러오기">🎬 데모</button>
-        <div class="demo-menu" id="demoMenu" hidden></div>
-      </div>
+      <span class="demo-btns" id="demoBtns"></span>
       <button id="btnRename">이름 변경</button>
       <button id="btnDeleteProject" class="danger">삭제</button>
     </div>
@@ -190,6 +187,6 @@
       }
     }
   </script>
-  <script type="module" src="app.js?v=19"></script>
+  <script type="module" src="app.js?v=20"></script>
 </body>
 </html>

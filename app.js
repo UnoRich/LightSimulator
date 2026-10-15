@@ -1,4 +1,4 @@
-import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=19';
+import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=20';
 
 /* =========================================================
    상수
@@ -1211,6 +1211,7 @@ function renderCustomPresets() {
    공연(프로젝트) 관리
    ========================================================= */
 function renderProjectSelect() {
+  $$('.demo-btn').forEach(b => b.classList.toggle('on', demoKey(state.project) === b.dataset.demo));
   const s = $('#projectSelect');
   s.textContent = '';
   const list = state.projects.slice().sort((a, b) => b.updatedAt - a.updatedAt);
@@ -1506,16 +1507,14 @@ function bindEvents() {
   // 조명 조정
   $$('[data-sel]').forEach(b => b.addEventListener('click', () => selectGroup(b.dataset.sel)));
   $$('[data-bri]').forEach(b => b.addEventListener('click', () => setBrightness(+b.dataset.bri)));
-  // 데모 고르기 메뉴
-  const menu = $('#demoMenu');
+  // 데모 버튼 (데모마다 하나씩)
   Object.entries(DEMOS).forEach(([key, d], i) => {
-    const b = el('button', 'demo-item');
-    b.append(el('b', null, `${i + 1}. ${d.title}`), el('span', 'muted', `${d.song} · ${d.dancers}명 · ${fmt(d.duration).replace(/\.\d$/, '')}`));
-    b.addEventListener('click', () => { menu.hidden = true; openDemo(key); });
-    menu.append(b);
+    const b = el('button', 'demo-btn', `🎬 데모 ${i + 1} ${d.title}`);
+    b.dataset.demo = key;
+    b.title = `${d.song} · ${d.dancers}명 · ${fmt(d.duration).replace(/\.\d$/, '')}`;
+    b.addEventListener('click', () => openDemo(key));
+    $('#demoBtns').append(b);
   });
-  $('#btnDemo').addEventListener('click', e => { e.stopPropagation(); menu.hidden = !menu.hidden; });
-  document.addEventListener('click', e => { if (!menu.hidden && !menu.contains(e.target)) menu.hidden = true; });
   $('#btnPrism').addEventListener('click', () => toggleBeamFlag('p', '프리즘'));
   $('#btnFocus').addEventListener('click', () => toggleBeamFlag('f', '센터 모으기'));
   $('#dancerMinus').addEventListener('click', () => setDancerCount(dancerCount() - 1));

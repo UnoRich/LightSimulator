@@ -20,11 +20,11 @@ const ROW_DEF = [
   { fz: 3.8, tz: 1.9, span: 10.8 },
 ];
 const SPOT_INTENSITY = 150;
-const MAX_LEVEL = 0.8;        // 밝기 100%일 때 실제 출력 (예전 80% 세기를 100으로)
+const MAX_LEVEL = 0.7;        // 밝기 100%일 때 실제 출력 (처음 기준 70% 세기를 100으로)
 const BEAM_OPACITY = 0.22;
 const BEAM_ANGLE = 0.32;      // 조명 퍼지는 각도 (반각, 라디안)
-const CAM_HOME = new THREE.Vector3(0, 3.1, 19);
-const CAM_TARGET = new THREE.Vector3(0, 2.4, 0);
+const CAM_HOME = new THREE.Vector3(0, 3.95, 16.4);   // 천장(무대 입구 위)부터 무대 앞 아래까지 꽉 차게
+const CAM_TARGET = new THREE.Vector3(0, 3.55, 0);
 const STAGE_H = 1.1;          // 무대 단 높이
 export const MAX_DANCERS = 20;
 
@@ -96,7 +96,7 @@ export function createStage(container, { onToggle, onRow }) {
   const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.0;
+  renderer.toneMappingExposure = 0.88;
   renderer.domElement.className = 'stage-canvas';
   container.prepend(renderer.domElement);
 
@@ -369,7 +369,7 @@ export function createStage(container, { onToggle, onRow }) {
   /* ---------- 후처리 (블룸) ---------- */
   const composer = new EffectComposer(renderer);
   composer.addPass(new RenderPass(scene, camera));
-  const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.5, 0.5, 0.85);
+  const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.28, 0.4, 0.9);
   composer.addPass(bloom);
   composer.addPass(new OutputPass());
 

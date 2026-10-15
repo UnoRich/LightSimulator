@@ -5,5 +5,7 @@
 *.mov
 .DS_Store
 # 데모 기본 음악은 재배포가 허용된 음원만 (Demo music/README.md 참고)
-!Demo music/demo.mp3
-!Demo music/demo2.mp3
+!Demo music/Demo1/music.mp3
+!Demo music/Demo1/music.m4a
+!Demo music/Demo2/music.mp3
+!Demo music/Demo2/music.m4a

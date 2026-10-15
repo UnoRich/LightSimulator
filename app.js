@@ -1,5 +1,5 @@
-import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=38';
-import { GIRLS_DEMO } from './demo-girls.js?v=38';
+import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=39';
+import { GIRLS_DEMO } from './demo-girls.js?v=39';
 
 /* =========================================================
    상수
@@ -281,9 +281,9 @@ function makeGirlsCues() {
 // 데모 목록 (version이 올라가면 이미 있는 그 데모 공연을 새 내용으로 갱신)
 const DEMOS = {
   drill: { title: '힙합 드릴', name: '데모: 힙합 드릴 ~1:40', song: 'BAND4BAND (Central Cee ft. Lil Baby)',
-    duration: 100, version: 7, dancers: 11, music: 'Demo music/demo.mp3', make: makeDrillCues },
+    duration: 100, version: 7, dancers: 11, music: 'Demo music/Demo1/music', make: makeDrillCues },
   girls: { title: '걸스 스타일', name: '데모: 걸스 스타일', song: 'CHAT (GIRLSET)',
-    duration: 172.7, version: 10, dancers: 6, names: GIRLS_NAMES, music: 'Demo music/demo2.mp3', make: makeGirlsCues },
+    duration: 172.7, version: 10, dancers: 6, names: GIRLS_NAMES, music: 'Demo music/Demo2/music', make: makeGirlsCues },
 };
 const demoKey = p => p && p.demo ? (p.demo.id || 'drill') : null;
 function newDemoProject(key) {
@@ -295,14 +295,20 @@ function newDemoProject(key) {
     createdAt: Date.now(), updatedAt: Date.now(), cues: d.make(),
   };
 }
-// 데모 기본 음악: DEMOS[..].music 파일이 있으면 그 데모에서 재생 (없으면 무음)
+// 데모 기본 음악: 'Demo music/DemoN/music.mp3' (또는 .m4a)이 있으면 그 데모에서 재생 (없으면 무음)
 const demoMusicCache = {};
-function loadDemoMusic(url) {
-  if (!demoMusicCache[url]) demoMusicCache[url] = fetch(encodeURI(url), { cache: 'no-cache' })
-    .then(r => r.ok ? r.arrayBuffer() : null)
-    .then(buf => buf && buf.byteLength ? { buf, type: 'audio/mpeg', name: '데모 음악', bundled: true } : null)
-    .catch(() => null);
-  return demoMusicCache[url].then(rec => rec && { ...rec, buf: rec.buf.slice(0) });
+function loadDemoMusic(base) {
+  if (!demoMusicCache[base]) demoMusicCache[base] = (async () => {
+    for (const [ext, type] of [['mp3', 'audio/mpeg'], ['m4a', 'audio/mp4']]) {
+      try {
+        const r = await fetch(encodeURI(`${base}.${ext}`), { cache: 'no-cache' });
+        const buf = r.ok ? await r.arrayBuffer() : null;
+        if (buf && buf.byteLength) return { buf, type, name: '데모 기본 노래', bundled: true };
+      } catch { /* 다음 확장자 */ }
+    }
+    return null;
+  })();
+  return demoMusicCache[base].then(rec => rec && { ...rec, buf: rec.buf.slice(0) });
 }
 
 // 노래 없는 데모용 무음 WAV (8kHz 8bit 모노)
@@ -1860,6 +1866,15 @@ async function ensureDemo(key, create) {
 async function openDemo(key) {
   const p = await ensureDemo(key, true);
   delete p.updatedNow;
+  // 이 데모에 직접 올린 노래가 있고 데모 기본 노래도 있으면, 바꿀지 물어봄
+  let mine = null;
+  try { mine = await DB.getAudio(p.id); } catch { /* 무시 */ }
+  if (mine && await loadDemoMusic(DEMOS[key].music) &&
+      confirm(`이 데모에 직접 올린 노래가 있어요: ${mine.name || '(이름 없음)'}\n\n지우고 데모 기본 노래로 바꿀까요?\n확인 → 데모 기본 노래로 / 취소 → 올린 노래 그대로`)) {
+    await DB.delAudio(p.id).catch(() => {});
+    p.audioName = '';
+    await DB.putProject(p).catch(() => {});
+  }
   await openProject(p.id);
   toast(`${DEMOS[key].title} 데모를 열었어요 · Space로 재생`);
 }

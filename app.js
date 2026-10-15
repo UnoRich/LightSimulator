@@ -1,4 +1,4 @@
-import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=27';
+import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=28';
 
 /* =========================================================
    상수
@@ -1172,9 +1172,13 @@ function renderCueList() {
   }
   for (const c of list) {
     const li = el('li');
+    li.dataset.id = c.id;
     if (c.id === state.activeCueId) li.classList.add('active');
     const active = c.id === state.activeCueId;
-    li.append(el('span', 't', fmt(c.time)), el('span', 'n', c.name || '(이름 없음)'),
+    const nm = el('span', 'n', c.name || '(이름 없음)');
+    nm.title = '이름을 누르면 바로 바꿀 수 있어요';
+    nm.addEventListener('click', e => { e.stopPropagation(); renameInList(c, nm); });
+    li.append(el('span', 't', fmt(c.time)), nm,
       miniGrid(c.lights, i => pickCueLight(c, i), active ? state.selected : null, frontOf(c), () => setCueFront(c)));
     const del = el('button', 'del', '✕');
     del.title = '섹션 삭제';
@@ -1190,6 +1194,35 @@ function renderCueList() {
     if (top < ol.scrollTop) ol.scrollTop = top;
     else if (bottom > ol.scrollTop + ol.clientHeight) ol.scrollTop = bottom - ol.clientHeight;
   }
+}
+
+// 섹션 목록에서 이름 바로 바꾸기 (Enter/바깥 클릭 = 저장, Esc = 취소)
+function renameInList(c, span) {
+  if (c.id !== state.activeCueId) seek(c.time);
+  const li = [...$$('#cueList li')].find(x => x.dataset.id === c.id);
+  const target = li ? li.querySelector('.n') : span;
+  const input = el('input', 'n-edit');
+  input.value = c.name || '';
+  input.maxLength = 40;
+  target.replaceWith(input);
+  input.focus(); input.select();
+  let done = false;
+  const finish = ok => {
+    if (done) return;
+    done = true;
+    if (ok) {
+      c.name = input.value.trim();
+      save(); renderHud(); drawTimeline(); renderEditor();
+    }
+    renderCueList();
+  };
+  input.addEventListener('click', e => e.stopPropagation());
+  input.addEventListener('keydown', e => {
+    e.stopPropagation();
+    if (e.key === 'Enter') finish(true);
+    else if (e.key === 'Escape') finish(false);
+  });
+  input.addEventListener('blur', () => finish(true));
 }
 
 function addCue() {
@@ -1348,6 +1381,9 @@ function applyPreset(lights, only) {
     next.forEach((l, i) => { if (keep(i)) next[i] = cue.lights[i]; });
   }
   cue.lights = next;
+  // 프리셋에서 켜지는 조명만 선택 상태로 (해당 범위 안에서)
+  const scope = only === 'wash' ? i => !isBeam(i) : only === 'beam' ? isBeam : () => true;
+  state.selected = new Set(next.map((l, i) => i).filter(i => scope(i) && next[i].b));
   lightsChanged();
 }
 

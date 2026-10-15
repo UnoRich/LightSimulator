@@ -275,7 +275,9 @@ h3 small { font-weight: 400; font-size: 11px; margin-left: 4px; }
 .cue-list li:hover { background: var(--panel-2); }
 .cue-list li.active { background: #222842; border-color: #3b4a8c; }
 .cue-list .t { font-variant-numeric: tabular-nums; color: var(--muted); font-size: 12px; }
-.cue-list .n { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cue-list .n { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: text; }
+.cue-list .n:hover { text-decoration: underline dotted; text-underline-offset: 3px; }
+.cue-list .n-edit { min-width: 0; width: 100%; padding: 3px 6px; font: inherit; background: var(--bg); border: 1px solid var(--primary); border-radius: 6px; }
 .cue-list .del { padding: 2px 8px; background: transparent; border-color: transparent; color: var(--muted); }
 .cue-list .del:hover { color: var(--danger); }
 .cue-list .empty-li { color: var(--muted); cursor: default; display: block; text-align: center; }

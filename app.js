@@ -1,6 +1,6 @@
-import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=53';
-import { GIRLS_DEMO, GIRLS_DEMO_NAMES, GIRLS_DEMO_COUNT } from './demo-girls.js?v=53';
-import { DRILL_DEMO, DRILL_DEMO_NAMES, DRILL_DEMO_COUNT } from './demo-drill.js?v=53';
+import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=54';
+import { GIRLS_DEMO, GIRLS_DEMO_NAMES, GIRLS_DEMO_COUNT } from './demo-girls.js?v=54';
+import { DRILL_DEMO, DRILL_DEMO_NAMES, DRILL_DEMO_COUNT } from './demo-drill.js?v=54';
 
 /* =========================================================
    상수
@@ -15,7 +15,7 @@ const SWATCHES = [
   ['#8a2aff', '보라'], ['#ff2ad0', '핑크'],
 ];
 const DEFAULT_FADE = 0.5;
-const GUIDE_VIDEO = 'media/guide.mp4';
+const GUIDE_VIDEO = 'https://www.youtube-nocookie.com/embed/6JEd0IpygAk?autoplay=1&rel=0';
 
 const DEFAULT_NAME = '새 공연';
 
@@ -1781,15 +1781,13 @@ function bindEvents() {
   // 사용법 영상 팝업
   const gm = $('#guideModal'), gv = $('#guideVideo');
   $('#btnGuide').addEventListener('click', () => {
-    if (!gv.getAttribute('src')) gv.src = GUIDE_VIDEO;
     audio.pause();
+    gv.src = GUIDE_VIDEO;
     gm.showModal();
-    gv.play().catch(() => {});
   });
-  gv.addEventListener('error', () => { $('#guideEmpty').hidden = false; });
   $('#guideClose').addEventListener('click', () => gm.close());
   gm.addEventListener('click', e => { if (e.target === gm) gm.close(); }); // 바깥(어두운 곳) 클릭으로 닫기
-  gm.addEventListener('close', () => gv.pause());
+  gm.addEventListener('close', () => { gv.removeAttribute('src'); }); // 닫으면 영상 멈춤
   $('#btnPrism').addEventListener('click', () => toggleBeamFlag('p', '프리즘'));
   $('#btnFocus').addEventListener('click', () => toggleBeamFlag('f', '센터 모으기'));
   $('#btnMove').addEventListener('click', () => toggleBeamFlag('m', '무빙'));

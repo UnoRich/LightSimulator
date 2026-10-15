@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>LightSimulator - D.strict416</title>
   <meta name="description" content="댄스 공연용 조명 큐 시뮬레이터 — 노래에 맞춰 섹션별 조명을 미리 짜고 조명감독에게 보여주세요.">
-  <link rel="stylesheet" href="style.css?v=53">
+  <link rel="stylesheet" href="style.css?v=54">
 </head>
 <body>
   <header class="topbar">
@@ -210,8 +210,7 @@
       <b>▶ LightSimulator 사용법</b>
       <button id="guideClose" class="icon-btn" title="닫기 (Esc)">✕</button>
     </div>
-    <video id="guideVideo" controls playsinline preload="none" poster="media/guide.jpg"></video>
-    <p class="modal-empty" id="guideEmpty" hidden>영상을 불러오지 못했어요. 잠시 뒤 다시 시도해 주세요.</p>
+    <div class="modal-video"><iframe id="guideVideo" title="LightSimulator 사용법" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div>
   </dialog>
   <script type="importmap">
     {
@@ -221,6 +220,6 @@
       }
     }
   </script>
-  <script type="module" src="app.js?v=53"></script>
+  <script type="module" src="app.js?v=54"></script>
 </body>
 </html>

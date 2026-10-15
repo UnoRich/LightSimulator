@@ -357,8 +357,8 @@ export function createStage(container, { onToggle, onRow }) {
     const b = document.createElement('button');
     b.className = 'row-label';
     b.textContent = name;
-    b.title = `${name} 전체 선택`;
-    b.addEventListener('click', () => onRow(r));
+    b.title = `${name} 전체 선택 (Shift: 선택에 더하기/빼기)`;
+    b.addEventListener('click', e => onRow(r, e.shiftKey));
     marksLayer.append(b);
     const pos = r === 3 ? new THREE.Vector3(-BEAM_TOP.span / 2 - 0.8, BEAM_TOP.y + 0.42, BEAM_TOP.z)
       : r === 4 ? new THREE.Vector3(BEAM_FLOOR_X[0] - 0.6, 0.3, BEAM_FLOOR_Z)

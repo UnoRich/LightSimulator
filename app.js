@@ -1,4 +1,4 @@
-import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=32';
+import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=33';
 
 /* =========================================================
    상수
@@ -554,7 +554,7 @@ function buildStage() {
   try {
     stage3d = createStage($('#stage'), {
       onToggle: i => toggleSelect(i),
-      onRow: r => selectGroup('r' + r),
+      onRow: (r, add) => selectGroup('r' + r, add),
     });
   } catch (e) {
     console.error(e);
@@ -1404,8 +1404,12 @@ const GROUPS = {
   center: i => !isBeam(i) && (colOf(i) === 2 || colOf(i) === 3),
   right: i => !isBeam(i) && colOf(i) > 3,
 };
-function selectGroup(key) {
-  state.selected = new Set([...Array(N).keys()].filter(GROUPS[key]));
+// add(Shift)면 지금 선택에 더하기, 그 그룹이 이미 다 선택돼 있으면 그 그룹만 빼기
+function selectGroup(key, add = false) {
+  const group = [...Array(N).keys()].filter(GROUPS[key]);
+  if (!add || key === 'all' || key === 'none') state.selected = new Set(group);
+  else if (group.length && group.every(i => state.selected.has(i))) group.forEach(i => state.selected.delete(i));
+  else group.forEach(i => state.selected.add(i));
   renderSelection();
 }
 
@@ -1812,7 +1816,10 @@ function bindEvents() {
   $('#btnCueDelete').addEventListener('click', () => { const c = activeCue(); if (c) deleteCue(c.id); });
 
   // 조명 조정
-  $$('[data-sel]').forEach(b => b.addEventListener('click', () => selectGroup(b.dataset.sel)));
+  $$('[data-sel]').forEach(b => {
+    b.addEventListener('click', e => selectGroup(b.dataset.sel, e.shiftKey));
+    if (!['all', 'none'].includes(b.dataset.sel)) b.title = 'Shift를 누르고 누르면 선택에 더하기/빼기';
+  });
   $$('[data-bri]').forEach(b => b.addEventListener('click', () => setBrightness(+b.dataset.bri)));
   // 데모 버튼 (데모마다 하나씩)
   Object.entries(DEMOS).forEach(([key, d], i) => {

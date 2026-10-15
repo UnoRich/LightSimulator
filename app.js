@@ -1,4 +1,4 @@
-import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=16';
+import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=17';
 
 /* =========================================================
    상수
@@ -133,17 +133,17 @@ function toast(msg) {
 /* =========================================================
    조명 데이터 / 프리셋
    ========================================================= */
-// c: 색, b: 밝기(0~100), p: 프리즘 (빔 조명만 의미 있음)
-const L = (c, b, p = false) => ({ c, b, p });
+// c: 색, b: 밝기(0~100), p: 프리즘, f: 센터 모으기 (p/f는 빔 조명만 의미 있음)
+const L = (c, b, p = false, f = false) => ({ c, b, p, f });
 // 워시 조명만 c/b로 채우고 빔은 꺼둠
 const fill = (c, b) => Array.from({ length: N }, (_, i) => L(c, isBeam(i) ? 0 : b));
-const cloneLights = ls => ls.map(l => L(l.c, l.b, !!l.p));
+const cloneLights = ls => ls.map(l => L(l.c, l.b, !!l.p, !!l.f));
 function lightsWhere(pred, c = '#ffffff', b = 100) {
   return Array.from({ length: N }, (_, i) => !isBeam(i) && pred(rowOf(i), colOf(i)) ? L(c, b) : L(c, 0));
 }
 // 빔 조명만 정의 (워시는 꺼둠). pred(top, k): top=상단 여부, k=그 줄에서 몇 번째
-function beamsWhere(pred, c = '#ffffff', b = 100, p = false) {
-  return Array.from({ length: N }, (_, i) => isBeam(i) && pred(rowOf(i) === 3, colOf(i)) ? L(c, b, p) : L(c, 0));
+function beamsWhere(pred, c = '#ffffff', b = 100, p = false, f = false) {
+  return Array.from({ length: N }, (_, i) => isBeam(i) && pred(rowOf(i) === 3, colOf(i)) ? L(c, b, p, f) : L(c, 0));
 }
 
 const BUILTIN_PRESETS = [
@@ -168,6 +168,7 @@ const BEAM_PRESETS = [
   { name: '빔 상단만', make: () => beamsWhere(top => top) },
   { name: '빔 하단만', make: () => beamsWhere(top => !top) },
   { name: '빔 프리즘', make: () => beamsWhere(() => true, '#ffffff', 100, true) },
+  { name: '빔 센터 프리즘', make: () => beamsWhere(top => top, '#6a7cff', 100, true, true) },
   { name: '빔 교차 (짝수)', make: () => beamsWhere((top, k) => k % 2 === 0, '#1ae0ff') },
   { name: '빔 끄기', make: () => beamsWhere(() => false) },
 ];
@@ -177,7 +178,7 @@ const BEAM_PRESETS = [
    (암전에서 시작해 서서히 밝아지는 인트로 → 0:14 드롭)
    노래 파일은 포함하지 않음 → 무음으로 조명만 재생, 파일을 올리면 같이 재생
    ========================================================= */
-const DEMO = { name: '데모: 힙합 드릴 ~1:40', duration: 100, song: 'BAND4BAND (Central Cee ft. Lil Baby)', version: 6, dancers: 11 };
+const DEMO = { name: '데모: 힙합 드릴 ~1:40', duration: 100, song: 'BAND4BAND (Central Cee ft. Lil Baby)', version: 7, dancers: 11 };
 function makeDemoCues() {
   // 여러 워시 레이어 합치기: 같은 조명은 앞쪽 레이어 우선
   const layer = (...ws) => ws[0].map((l, i) => ws.map(w => w[i]).find(x => x.b) || L('#ffffff', 0));
@@ -191,7 +192,7 @@ function makeDemoCues() {
   const B = {
     off: () => beamsWhere(() => false),
     all: (c, b = 100, p = false) => beamsWhere(() => true, c, b, p),
-    top: (c, b = 100, p = false) => beamsWhere(top => top, c, b, p),
+    top: (c, b = 100, p = false, f = false) => beamsWhere(top => top, c, b, p, f),
     floor: (c, b = 100, p = false) => beamsWhere(top => !top, c, b, p),
     alt: (c, b = 100, p = false) => beamsWhere((top, k) => top && k % 2 === 0, c, b, p),
   };
@@ -224,7 +225,7 @@ function makeDemoCues() {
     C(75.88, '훅 2 - 핑크 프리즘', 0.1, mix(W.all(PINK, 70), B.all(WHITE, 100, true))),
     C(79.34, '좌우 스팟', 0.1, mix(W.cols([0, 1, 4, 5], WHITE, 100), B.top(CYAN))),
     C(86.22, '빨강 + 바닥 빔', 0, mix(W.all(RED, 80), B.top(WHITE), B.floor(RED))),
-    C(93.09, '보라 프리즘', 0.1, mix(W.all(PURPLE, 80), B.all(WHITE, 100, true))),
+    C(93.09, '센터 프리즘', 1, mix(W.all(PURPLE, 25), B.top('#6a7cff', 100, true, true)), 0),
     C(98.13, '마무리 풀 화이트', 0, mix(W.all(WHITE, 100), B.all(WHITE, 100, true))),
     C(100, '엔딩 암전', 2, mix(W.off(), B.off()), 0),
   ];
@@ -239,7 +240,7 @@ function makeDemoCues() {
     [28.0, solo], [29.84, tri], [41.66, grid], [48.51, F.circle.make(n)], [53.64, F.v.make(n)],
     [55.36, F.clump.make(n)], [56.63, back], [62.23, F.rows.make(n)], [69.06, tri], [72.49, grid],
     [75.88, F.invV.make(n)], [79.34, [...F.clump.make(6, -3.4, 0.5), ...F.clump.make(5, 3.4, 0.5)]],
-    [86.22, grid], [93.09, F.circle.make(n)], [98.13, tri],
+    [86.22, grid], [93.09, F.clump.make(n, 0, 0.6)], [98.13, tri],
   ];
   let cur = back;
   for (const c of list) {
@@ -288,7 +289,7 @@ function normalizeLights(ls) {
       if (!l) continue;
       if (typeof l.c === 'string' && /^#[0-9a-f]{6}$/i.test(l.c)) out[i].c = l.c.toLowerCase();
       if (typeof l.b === 'number' && isFinite(l.b)) out[i].b = clamp(Math.round(l.b), 0, 100);
-      if (isBeam(i)) out[i].p = !!l.p;
+      if (isBeam(i)) { out[i].p = !!l.p; out[i].f = !!l.f; }
     }
   }
   return out;
@@ -836,11 +837,12 @@ function miniGrid(lights, onPick, sel, front, onFront) {
     d.style.gridColumn = r === 3 ? k + 1 : r === 4 ? k + 3 : k + 2;
     if (isBeam(i)) d.classList.add('beam');
     if (l.p && l.b) d.classList.add('prism');
+    if (l.f && l.b) d.classList.add('focus');
     if (l.b) { d.style.background = l.c; d.style.opacity = 0.3 + 0.7 * l.b / 100; }
     else { d.style.background = '#3a3d47'; d.style.opacity = 0.5; }
     if (sel && sel.has(i)) d.classList.add('sel');
     if (onPick) {
-      d.title = `${ROW_NAMES[r]} ${k + 1}번 · 밝기 ${l.b}%${l.p ? ' · 프리즘' : ''}`;
+      d.title = `${ROW_NAMES[r]} ${k + 1}번 · 밝기 ${l.b}%${l.p ? ' · 프리즘' : ''}${l.f ? ' · 센터 모으기' : ''}`;
       d.addEventListener('click', e => { e.stopPropagation(); onPick(i); });
     }
     g.append(d);
@@ -969,6 +971,7 @@ function renderSelection() {
   if (!cue) return;
   const pb = prismTargets();
   $('#btnPrism').classList.toggle('on', pb.length > 0 && pb.every(i => cue.lights[i].p));
+  $('#btnFocus').classList.toggle('on', pb.length > 0 && pb.every(i => cue.lights[i].f));
   const first = cue.lights[targets()[0]];
   const bri = $('#bri');
   if (document.activeElement !== bri) { bri.value = first.b; }
@@ -1010,18 +1013,22 @@ function setColor(hex) {
   lightsChanged();
 }
 
-// 프리즘 대상: 선택한 빔, 아무것도 선택 안 했으면 빔 전체
+// 프리즘/센터 모으기 대상: 선택한 빔, 선택이 없으면 켜진 빔 (켜진 게 없으면 빔 전체)
 function prismTargets() {
-  return state.selected.size ? [...state.selected].filter(isBeam) : BEAM_IDX;
+  if (state.selected.size) return [...state.selected].filter(isBeam);
+  const cue = activeCue();
+  const lit = cue ? BEAM_IDX.filter(i => cue.lights[i].b) : [];
+  return lit.length ? lit : BEAM_IDX;
 }
-function togglePrism() {
+// key: 'p' 프리즘 / 'f' 센터 모으기
+function toggleBeamFlag(key, label) {
   const cue = activeCue();
   if (!cue) return;
   const t = prismTargets();
-  if (!t.length) { toast('프리즘은 빔 조명에만 쓸 수 있어요'); return; }
-  const on = !t.every(i => cue.lights[i].p);
+  if (!t.length) { toast(`${label}는 빔 조명에만 쓸 수 있어요`); return; }
+  const on = !t.every(i => cue.lights[i][key]);
   for (const i of t) {
-    cue.lights[i].p = on;
+    cue.lights[i][key] = on;
     if (on && !cue.lights[i].b) cue.lights[i].b = 100;
   }
   lightsChanged();
@@ -1391,7 +1398,8 @@ function bindEvents() {
   // 조명 조정
   $$('[data-sel]').forEach(b => b.addEventListener('click', () => selectGroup(b.dataset.sel)));
   $$('[data-bri]').forEach(b => b.addEventListener('click', () => setBrightness(+b.dataset.bri)));
-  $('#btnPrism').addEventListener('click', togglePrism);
+  $('#btnPrism').addEventListener('click', () => toggleBeamFlag('p', '프리즘'));
+  $('#btnFocus').addEventListener('click', () => toggleBeamFlag('f', '센터 모으기'));
   $('#dancerMinus').addEventListener('click', () => setDancerCount(dancerCount() - 1));
   $('#dancerPlus').addEventListener('click', () => setDancerCount(dancerCount() + 1));
   $('#formApplyNext').addEventListener('click', applyFormationToNext);

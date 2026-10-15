@@ -310,6 +310,7 @@ h3 small { font-weight: 400; font-size: 11px; margin-left: 4px; }
 .cue-list .mini .front { height: 8px; cursor: pointer; }
 .cue-list .mini .front:hover { box-shadow: 0 0 0 1.5px var(--primary); }
 .mini i.prism { box-shadow: inset 0 0 0 2px rgba(0,0,0,.55); }
+.mini i.focus { outline: 1.5px solid var(--accent); outline-offset: -1px; }
 .prism-btn.on { border-color: var(--accent); color: var(--accent); }
 .mini.pick i { cursor: pointer; transition: transform .1s; }
 .mini.pick i:hover { transform: scale(1.35); }

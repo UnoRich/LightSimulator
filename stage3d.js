@@ -34,6 +34,10 @@ const BEAM_FLOOR_X = [-4.8, -1.6, 1.6, 4.8], BEAM_FLOOR_Z = -3.7;
 const BEAM_HALF = 0.03;       // 빔 반각 (아주 좁게)
 const BEAM_OP = 0.85;
 const PRISM_FACETS = 8, PRISM_SPREAD = 0.12, PRISM_SPEED = 0.9; // 프리즘: 갈래 수, 벌어짐(라디안), 회전 속도
+// 센터 모으기: 빔이 무대 가운데로 모임 (상단은 바닥 센터, 하단은 무대 위 공중 한 점)
+function beamFocus(i, origin, top) {
+  return top ? new THREE.Vector3(origin.x * 0.16, 0, 0.5) : new THREE.Vector3(origin.x * 0.12, 8.2, 0.4);
+}
 function beamAim(i) {
   if (i < N_WASH + N_BEAM_TOP) {
     const k = i - N_WASH;
@@ -220,6 +224,8 @@ export function createStage(container, { onToggle, onRow }) {
   }
 
   /* ---------- 빔 조명 ---------- */
+  const sparkGeo = new THREE.CircleGeometry(0.3, 16);
+  const tmpV = new THREE.Vector3(), tmpDir = new THREE.Vector3();
   const poolTex = (() => {
     const cv = document.createElement('canvas');
     cv.width = cv.height = 64;
@@ -283,6 +289,21 @@ export function createStage(container, { onToggle, onRow }) {
       spin.add(holder);
     }
     spin.visible = false;
+    const facets = spin.children.map(h => h.children[0]);
+
+    // 프리즘 바닥 무늬: 갈래마다 바닥에 닿는 작은 빛점 (상단 빔만)
+    const sparks = [];
+    if (top) {
+      for (let k = 0; k < PRISM_FACETS; k++) {
+        const m = new THREE.Mesh(sparkGeo, new THREE.MeshBasicMaterial({
+          map: poolTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0,
+        }));
+        m.rotation.x = -Math.PI / 2;
+        m.visible = false;
+        scene.add(m);
+        sparks.push(m);
+      }
+    }
 
     // 바닥에 떨어지는 빛 자국 (상단 빔만, 실제 조명 대신 가벼운 가산 원판)
     let pool = null;
@@ -311,9 +332,11 @@ export function createStage(container, { onToggle, onRow }) {
 
     lights.push({
       spot: null, pool, beam, lens, target, origin, spin, pmat, isBeam: true,
-      cur: { r: 0, g: 0, b: 0, o: 0, p: 0 },
-      from: { r: 0, g: 0, b: 0, o: 0, p: 0 },
-      to: { r: 0, g: 0, b: 0, o: 0, p: 0 },
+      aim, facets, sparks, top, baseLen: len, mat,
+      home: target.clone(), focus: beamFocus(i, origin, top), aimAt: target.clone(),
+      cur: { r: 0, g: 0, b: 0, o: 0, p: 0, f: 0 },
+      from: { r: 0, g: 0, b: 0, o: 0, p: 0, f: 0 },
+      to: { r: 0, g: 0, b: 0, o: 0, p: 0, f: 0 },
       t0: 0, dur: 0,
     });
   }
@@ -410,12 +433,39 @@ export function createStage(container, { onToggle, onRow }) {
       u.uTime.value = t;
       L.beam.visible = u.uOpacity.value > 0.002;
       if (L.isBeam) {
+        cur.f = from.f + (to.f - from.f) * k;
+        // 조준점: 기본 위치 ↔ 센터 모으기
+        L.aimAt.lerpVectors(L.home, L.focus, cur.f);
+        tmpDir.subVectors(L.aimAt, L.origin);
+        const len = tmpDir.length();
+        L.aim.quaternion.setFromUnitVectors(down, tmpDir.normalize());
+        const sy = len / L.baseLen;
+        L.beam.scale.y = sy;
+        for (const f of L.facets) f.scale.y = sy;
+        L.mat.uniforms.uLength.value = L.pmat.uniforms.uLength.value = len * 1.05;
+        if (L.pool) L.pool.position.set(L.aimAt.x, 0.012, L.aimAt.z);
+
         const pu = L.pmat.uniforms;
         pu.uColor.value.setRGB(cur.r, cur.g, cur.b);
         pu.uOpacity.value = cur.o * BEAM_OP * 0.32 * cur.p;
         pu.uTime.value = t;
         L.spin.visible = pu.uOpacity.value > 0.002;
         L.spin.rotation.y = t * PRISM_SPEED;
+
+        // 프리즘 바닥 무늬: 각 갈래가 바닥(y=0)에 닿는 곳에 빛점
+        const so = cur.o * cur.p;
+        for (let j = 0; j < L.sparks.length; j++) {
+          const sp = L.sparks[j];
+          sp.visible = so > 0.01;
+          if (!sp.visible) continue;
+          if (j === 0) L.aim.updateMatrixWorld(true);
+          tmpV.set(0, -1, 0).transformDirection(L.facets[j].matrixWorld);
+          if (tmpV.y > -0.05) { sp.visible = false; continue; }
+          const d = L.origin.y / -tmpV.y;
+          sp.position.set(L.origin.x + tmpV.x * d, 0.014, L.origin.z + tmpV.z * d);
+          sp.material.color.setRGB(cur.r, cur.g, cur.b);
+          sp.material.opacity = so * 0.9;
+        }
       }
       L.lens.material.color.setRGB(cur.r, cur.g, cur.b).multiplyScalar(0.05 + cur.o * 4);
     }
@@ -444,12 +494,12 @@ export function createStage(container, { onToggle, onRow }) {
       Object.assign(L.from, L.cur);
       tmp.set(l.c); // sRGB hex → 선형 색공간
       const o = l.b <= 0 ? 0 : Math.pow(l.b / 100, 1.4);
-      Object.assign(L.to, { r: tmp.r, g: tmp.g, b: tmp.b, o, p: l.p ? 1 : 0 });
+      Object.assign(L.to, { r: tmp.r, g: tmp.g, b: tmp.b, o, p: l.p ? 1 : 0, f: l.f ? 1 : 0 });
       L.t0 = now;
       L.dur = fade;
 
       const { mark } = marks[i];
-      mark.title = `${ROW_NAMES[rowOf(i)]} ${colOf(i) + 1}번 · 밝기 ${l.b}%${l.p ? ' · 프리즘' : ''}`;
+      mark.title = `${ROW_NAMES[rowOf(i)]} ${colOf(i) + 1}번 · 밝기 ${l.b}%${l.p ? ' · 프리즘' : ''}${l.f ? ' · 센터 모으기' : ''}`;
     });
   }
 

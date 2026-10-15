@@ -1,4 +1,4 @@
-import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=25';
+import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=26';
 
 /* =========================================================
    상수
@@ -262,7 +262,7 @@ function makeDrillCues() {
   return list;
 }
 /* ---------- 데모 2: 걸스 스타일 (GIRLSET "CHAT"), 6명, 전체 2:52 ----------
-   약 161 BPM(한 마디 1.5초). 대형은 동선 영상에서 뽑은 31개 (영상 위쪽 = 무대 뒤쪽),
+   약 161 BPM(한 마디 1.5초). 대형은 동선 영상에서 뽑은 31개 (영상 좌표 그대로, 위쪽 = 객석이라 아래에서 위아래를 뒤집음),
    [이동 시작 시각, 이동 시간(초), 6명 위치] — 영상이 노래보다 0.45초 늦어서 보정함 */
 const GIRLS_NAMES = ['성경', '지현', '세현', '수민', '다은', '민희'];
 const GIRLS_FORMS = [
@@ -298,7 +298,10 @@ const GIRLS_FORMS = [
   [157.68, 1.12, [[-2, 0.5], [1, -0.5], [-1, -0.5], [0, -1.5], [0, 1], [2, 0.5]]],
   [164.18, 3.12, [[2, 0], [-1, -1.5], [-2, 0], [-3, -1.5], [3, -1.5], [1, -1.5]]],
 ];
+// 영상은 위쪽이 객석 → 우리 좌표(아래쪽 = 객석)로 위아래 뒤집기
+const girlsForms = () => GIRLS_FORMS.map(([t, mv, pos]) => [t, mv, pos.map(([x, z]) => [x, z ? -z : 0])]);
 function makeGirlsCues() {
+  const FORMS = girlsForms();
   const { layer, W, B, mix, C, WHITE, CYAN, PURPLE, PINK, WARM, LAV } = demoKit();
   // 조명 변화는 큰 구간 경계에서만 (마디 시작에 맞춤)
   const list = [
@@ -322,11 +325,11 @@ function makeGirlsCues() {
   // 대형: 섹션 시작 시점의 영상 대형 (0.75초 안에 시작하는 이동은 이 섹션에 포함),
   // 섹션 안에서 일어나는 나머지 대형 변화는 steps로 넣어서 섹션 수는 그대로 유지
   list.forEach((c, i) => {
-    const [start, move, pos] = GIRLS_FORMS.filter(([st]) => st <= c.time + 0.75).pop();
+    const [start, move, pos] = FORMS.filter(([st]) => st <= c.time + 0.75).pop();
     c.pos = fullPos(pos);
     if (c.time > 0) c.move = Math.max(1, +(start + move - c.time).toFixed(2));
     const end = i + 1 < list.length ? list[i + 1].time - 0.75 : Infinity;
-    const steps = GIRLS_FORMS.filter(([st]) => st > c.time + 0.75 && st <= end)
+    const steps = FORMS.filter(([st]) => st > c.time + 0.75 && st <= end)
       .map(([t, mv, p]) => ({ t, move: mv, pos: fullPos(p) }));
     if (steps.length) c.steps = steps;
   });
@@ -338,7 +341,7 @@ const DEMOS = {
   drill: { title: '힙합 드릴', name: '데모: 힙합 드릴 ~1:40', song: 'BAND4BAND (Central Cee ft. Lil Baby)',
     duration: 100, version: 7, dancers: 11, music: 'Demo music/demo.mp3', make: makeDrillCues },
   girls: { title: '걸스 스타일', name: '데모: 걸스 스타일', song: 'CHAT (GIRLSET)',
-    duration: 172.7, version: 4, dancers: 6, names: GIRLS_NAMES, music: 'Demo music/demo2.mp3', make: makeGirlsCues },
+    duration: 172.7, version: 5, dancers: 6, names: GIRLS_NAMES, music: 'Demo music/demo2.mp3', make: makeGirlsCues },
 };
 const demoKey = p => p && p.demo ? (p.demo.id || 'drill') : null;
 function newDemoProject(key) {

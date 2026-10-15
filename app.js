@@ -1,6 +1,6 @@
-import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=43';
-import { GIRLS_DEMO } from './demo-girls.js?v=43';
-import { DRILL_DEMO } from './demo-drill.js?v=43';
+import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=44';
+import { GIRLS_DEMO } from './demo-girls.js?v=44';
+import { DRILL_DEMO } from './demo-drill.js?v=44';
 
 /* =========================================================
    상수
@@ -1746,6 +1746,7 @@ function bindEvents() {
     } else if (e.key === 'ArrowLeft') { e.preventDefault(); seek(audio.currentTime - 5); }
     else if (e.key === 'ArrowRight') { e.preventDefault(); seek(audio.currentTime + 5); }
     else if (e.key === 'm' || e.key === 'M') { if (!state.showMode) { e.preventDefault(); addCue(); } }
+    else if (e.code === 'KeyQ' && !state.showMode) { e.preventDefault(); if (state.selected.size) { selectGroup('none'); toast('조명 선택을 모두 해제했어요'); } }
     else if (e.key === 'Escape' && state.showMode) exitShow();
   });
 

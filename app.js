@@ -1,4 +1,4 @@
-import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=20';
+import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=21';
 
 /* =========================================================
    상수
@@ -295,53 +295,32 @@ const GIRLS_FORMS = [
 ];
 function makeGirlsCues() {
   const { layer, W, B, mix, C, WHITE, CYAN, PURPLE, PINK, WARM, LAV } = demoKit();
-  // 조명 변화 (음악 구간 기준, 마디 시작에 맞춤)
+  // 조명 변화는 큰 구간 경계에서만 (마디 시작에 맞춤)
   const list = [
     C(0, '암전', 0, mix(W.off(), B.off()), 0),
-    C(1.58, '인트로 - 핑크 페이드 인', 3, mix(W.rows([0], PINK, 30), B.off()), 0),
-    C(6.06, '인트로 빌드', 2, mix(layer(W.rows([0], PINK, 60), W.rows([1], PINK, 30)), B.top(PINK, 40)), 50),
+    C(1.58, '인트로 - 핑크 페이드 인', 5, mix(layer(W.rows([0], PINK, 50), W.rows([1], PINK, 25)), B.top(PINK, 30)), 0),
     C(10.57, 'A - 핑크', 0, mix(W.all(PINK, 80), B.alt(WHITE))),
-    C(18.07, 'A - 보라 + 바닥 빔', 0.3, mix(W.all(PURPLE, 70), B.floor(CYAN))),
     C(24.08, '쉼 - 센터', 0.5, mix(W.pin(WARM, 70), B.off()), 50),
     C(28.58, '후렴 1', 0, mix(W.all(WHITE, 100), B.all2(PINK, 100, true))),
-    C(34.57, '후렴 1 - 핑크', 0.2, mix(W.all(PINK, 100), B.top(WHITE))),
-    C(40.59, '끊기', 0, mix(W.off(), B.off()), 0),
     C(42.07, 'B - 시안', 0, mix(W.all(CYAN, 70), B.alt(PINK))),
-    C(48.07, 'B - 보라 프리즘', 0.2, mix(W.all(PURPLE, 80), B.all2(WHITE, 100, true))),
     C(54.08, '브릿지 - 웜', 1, mix(W.all(WARM, 40), B.off()), 50),
     C(63.07, '벌스 2', 0.3, mix(W.all(PINK, 60), B.floor(PINK))),
-    C(70.59, '벌스 2 - 시안', 0.3, mix(W.all(CYAN, 60), B.alt(WHITE))),
-    C(78.09, '실루엣', 0.5, mix(W.rows([0], PURPLE, 100), B.off()), 0),
-    C(82.57, '빌드업', 1, mix(W.all(WHITE, 30), B.top(WHITE, 70)), 50),
+    C(78.09, '빌드업', 1.5, mix(W.rows([0], PURPLE, 80), B.top(WHITE, 60)), 0),
     C(96.08, '후렴 2', 0, mix(W.all(PINK, 100), B.all2(WHITE))),
-    C(103.56, '후렴 2 - 핑크 프리즘', 0.2, mix(W.all(PURPLE, 90), B.all2(PINK, 100, true))),
     C(111.08, '댄스 브레이크', 0, mix(W.all(CYAN, 80), B.alt(WHITE), B.floor(PINK))),
-    C(118.58, '댄스 - 센터 프리즘', 1, mix(W.all(PURPLE, 30), B.top(LAV, 100, true, true)), 0),
-    C(124.58, '댄스 - 핑크', 0.2, mix(W.all(PINK, 90), B.top(WHITE))),
+    C(118.58, '센터 프리즘', 1, mix(W.all(PURPLE, 30), B.top(LAV, 100, true, true)), 0),
     C(130.57, '브레이크 - 핀', 0.3, mix(W.pin(WHITE, 90), B.off()), 0),
     C(134.95, '마지막 후렴', 0, mix(W.all(WHITE, 100), B.all2(WHITE, 100, true))),
-    C(142.38, '마지막 후렴 - 핑크', 0.2, mix(W.all(PINK, 100), B.top(PINK))),
-    C(149.88, '마지막 후렴 - 보라', 0.2, mix(W.all(PURPLE, 90), B.alt(CYAN), B.floor(WHITE))),
-    C(157.38, '마지막 후렴 - 시안 프리즘', 0.2, mix(W.all(CYAN, 80), B.all2(WHITE, 100, true))),
-    C(163.4, '클라이맥스', 0, mix(W.all(WHITE, 100), B.all2(WHITE))),
+    C(163.4, '클라이맥스', 0, mix(W.all(PINK, 100), B.all2(WHITE))),
     C(169.37, '엔딩 암전', 2, mix(W.off(), B.off()), 0),
   ];
-  // 대형 이동 시작이 조명 변화와 0.75초 안이면 그 섹션에 합치고, 아니면 '대형 N' 섹션을 새로 만듦
-  const lightAt = t => list.filter(c => c.time <= t + 1e-6).pop();
-  GIRLS_FORMS.forEach(([start, move, pos], k) => {
-    const near = list.find(c => Math.abs(c.time - start) <= 0.75 && !c.form);
-    if (near) { near.form = { pos, arrive: start + move }; return; }
-    const base = lightAt(start);
-    list.push({ ...C(start, `대형 ${k + 1}`, 0.3, cloneLights(base.lights), base.front), form: { pos, arrive: start + move } });
-  });
-  list.sort((a, b) => a.time - b.time);
-  // 섹션마다 위치/이동 시간 정하기 (이동 중에 시작하는 섹션은 남은 시간만큼 이동)
-  let cur = { pos: GIRLS_FORMS[0][2], arrive: 0 };
+  // 대형: 섹션 시작 시점의 영상 대형 (0.75초 안에 시작하는 이동은 이 섹션에 포함)
   for (const c of list) {
-    if (c.form) cur = c.form;
-    c.pos = fullPos(cur.pos);
-    if (cur.arrive > c.time) c.move = Math.max(0.3, +(cur.arrive - c.time).toFixed(2));
-    delete c.form;
+    const [start, move, pos] = GIRLS_FORMS.filter(([st]) => st <= c.time + 0.75).pop();
+    c.pos = fullPos(pos);
+    const arrive = start + move;
+    // 중간 대형을 건너뛰므로 이동 시간은 최소 1초
+    if (c.time > 0) c.move = Math.max(1, +(arrive - c.time).toFixed(2));
   }
   return list;
 }
@@ -351,7 +330,7 @@ const DEMOS = {
   drill: { title: '힙합 드릴', name: '데모: 힙합 드릴 ~1:40', song: 'BAND4BAND (Central Cee ft. Lil Baby)',
     duration: 100, version: 7, dancers: 11, music: 'Demo music/demo.mp3', make: makeDrillCues },
   girls: { title: '걸스 스타일', name: '데모: 걸스 스타일', song: 'CHAT (GIRLSET)',
-    duration: 172.7, version: 1, dancers: 6, names: GIRLS_NAMES, music: 'Demo music/demo2.mp3', make: makeGirlsCues },
+    duration: 172.7, version: 2, dancers: 6, names: GIRLS_NAMES, music: 'Demo music/demo2.mp3', make: makeGirlsCues },
 };
 const demoKey = p => p && p.demo ? (p.demo.id || 'drill') : null;
 function newDemoProject(key) {

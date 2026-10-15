@@ -1,4 +1,4 @@
-import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=17';
+import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=18';
 
 /* =========================================================
    상수

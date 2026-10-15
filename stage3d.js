@@ -20,6 +20,7 @@ const ROW_DEF = [
   { fz: 3.8, tz: 1.9, span: 10.8 },
 ];
 const SPOT_INTENSITY = 150;
+const MAX_LEVEL = 0.8;        // 밝기 100%일 때 실제 출력 (예전 80% 세기를 100으로)
 const BEAM_OPACITY = 0.22;
 const BEAM_ANGLE = 0.32;      // 조명 퍼지는 각도 (반각, 라디안)
 const CAM_HOME = new THREE.Vector3(0, 3.1, 19);
@@ -493,7 +494,7 @@ export function createStage(container, { onToggle, onRow }) {
       const L = lights[i];
       Object.assign(L.from, L.cur);
       tmp.set(l.c); // sRGB hex → 선형 색공간
-      const o = l.b <= 0 ? 0 : Math.pow(l.b / 100, 1.4);
+      const o = l.b <= 0 ? 0 : Math.pow(l.b / 100 * MAX_LEVEL, 1.4);
       Object.assign(L.to, { r: tmp.r, g: tmp.g, b: tmp.b, o, p: l.p ? 1 : 0, f: l.f ? 1 : 0 });
       L.t0 = now;
       L.dur = fade;

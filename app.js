@@ -1,6 +1,6 @@
-import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=46';
-import { GIRLS_DEMO } from './demo-girls.js?v=46';
-import { DRILL_DEMO } from './demo-drill.js?v=46';
+import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=47';
+import { GIRLS_DEMO } from './demo-girls.js?v=47';
+import { DRILL_DEMO } from './demo-drill.js?v=47';
 
 /* =========================================================
    상수
@@ -956,8 +956,56 @@ function setMoveTime(v) {
   drawTimeline();
 }
 
+// 왼쪽 명단: 인원수만큼 동그라미, 누르면 이름 바꾸기 (평면도의 동그라미는 옮기기만)
+let rosterEditing = -1;
+function renderRoster() {
+  if (rosterEditing >= 0) return;
+  const box = $('#roster');
+  box.textContent = '';
+  const names = (state.project && state.project.names) || [];
+  for (let i = 0; i < dancerCount(); i++) {
+    const b = el('button', 'roster-item');
+    b.append(el('span', 'rc', names[i] || i + 1));
+    b.title = `${names[i] || `${i + 1}번`} · 눌러서 이름 바꾸기`;
+    b.addEventListener('click', () => editRosterName(i, b));
+    box.append(b);
+  }
+}
+function editRosterName(i, btn) {
+  const p = state.project;
+  if (!p) return;
+  rosterEditing = i;
+  const input = el('input', 'roster-edit');
+  input.value = (p.names && p.names[i]) || '';
+  input.maxLength = 4;
+  input.placeholder = `${i + 1}번`;
+  btn.replaceWith(input);
+  input.focus(); input.select();
+  let done = false;
+  const finish = ok => {
+    if (done) return;
+    done = true;
+    rosterEditing = -1;
+    if (ok) {
+      const v = input.value.trim().slice(0, 4);
+      const names = Array.from({ length: MAX_DANCERS }, (_, k) => (p.names && p.names[k]) || '');
+      names[i] = v;
+      p.names = names.some(Boolean) ? names : undefined;
+      save();
+    }
+    renderFormation();
+  };
+  input.addEventListener('keydown', e => {
+    e.stopPropagation();
+    if (e.key === 'Enter') finish(true);
+    else if (e.key === 'Escape') finish(false);
+  });
+  input.addEventListener('blur', () => finish(true));
+}
+
 function renderFormation() {
   renderSteps();
+  renderRoster();
   const cue = activeCue();
   const n = dancerCount();
   $('#formation').classList.toggle('off', !cue);

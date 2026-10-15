@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Light Cue</title>
   <meta name="description" content="댄스 공연용 조명 큐 시뮬레이터 — 노래에 맞춰 섹션별 조명을 미리 짜고 조명감독에게 보여주세요.">
-  <link rel="stylesheet" href="style.css?v=46">
+  <link rel="stylesheet" href="style.css?v=47">
 </head>
 <body>
   <header class="topbar">
@@ -73,6 +73,7 @@
         </label>
       </div>
       <div class="formation" id="formation">
+        <div class="roster" id="roster" aria-label="인원 명단 (눌러서 이름 바꾸기)"></div>
         <svg id="formMap" viewBox="-7 -5 14 11.2" aria-label="인원 배치 평면도"></svg>
         <div class="form-side">
           <div class="form-head"><h3>인원 배치 <small class="muted" id="formCue"></small></h3></div>
@@ -91,7 +92,7 @@
             <label class="move-field">이동 <input id="formMove" type="number" min="0.3" max="10" step="0.1" placeholder="자동">초</label>
           </div>
           <button id="formCopyPrev" class="small" title="타임라인 동선 줄에서 바로 앞 배치(○ 또는 ◆)를 복사">앞 배치를 복사</button>
-          <p class="muted form-tip">번호를 끌어서 옮겨요 (0.25m 단위). 지금 보이는 동선이 고쳐져요. ◆는 타임라인에서 좌우로 끌어 시간을 바꿀 수 있어요. 아래쪽이 객석이에요.</p>
+          <p class="muted form-tip">번호를 끌어서 옮겨요 (0.25m 단위). 이름은 왼쪽 명단의 동그라미를 눌러 바꿔요. 지금 보이는 동선이 고쳐져요. ◆는 타임라인에서 좌우로 끌어 시간을 바꿀 수 있어요. 아래쪽이 객석이에요.</p>
           <p class="form-info" id="formInfo"></p>
         </div>
       </div>
@@ -198,6 +199,6 @@
       }
     }
   </script>
-  <script type="module" src="app.js?v=46"></script>
+  <script type="module" src="app.js?v=47"></script>
 </body>
 </html>

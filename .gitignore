@@ -1,7 +1,5 @@
-*.mp3
 *.m4a
 *.wav
-*.mp4
 *.mov
 .DS_Store
 # 데모 기본 음악은 재배포가 허용된 음원만 (Demo music/README.md 참고)

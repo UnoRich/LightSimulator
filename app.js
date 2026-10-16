@@ -1,6 +1,6 @@
-import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=57';
-import { GIRLS_DEMO, GIRLS_DEMO_NAMES, GIRLS_DEMO_COUNT } from './demo-girls.js?v=57';
-import { DRILL_DEMO, DRILL_DEMO_NAMES, DRILL_DEMO_COUNT } from './demo-drill.js?v=57';
+import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=58';
+import { GIRLS_DEMO, GIRLS_DEMO_NAMES, GIRLS_DEMO_COUNT } from './demo-girls.js?v=58';
+import { DRILL_DEMO, DRILL_DEMO_NAMES, DRILL_DEMO_COUNT } from './demo-drill.js?v=58';
 
 /* =========================================================
    상수
@@ -164,9 +164,9 @@ const BUILTIN_PRESETS = [
   { name: '밝기 50', make: () => fill('#ffffff', 50) },
   { name: '밝기 10', make: () => fill('#ffffff', 10) },
   { name: '암전', make: () => fill('#ffffff', 0) },
-  { name: '왼쪽 스팟', make: () => lightsWhere((r, c) => r > 0 && c < 2) },
-  { name: '가운데 스팟', make: () => lightsWhere((r, c) => r > 0 && (c === 2 || c === 3)) },
-  { name: '오른쪽 스팟', make: () => lightsWhere((r, c) => r > 0 && c > 3) },
+  { name: '왼쪽 구역', make: () => lightsWhere((r, c) => r > 0 && c < 2) },
+  { name: '가운데 구역', make: () => lightsWhere((r, c) => r > 0 && (c === 2 || c === 3)) },
+  { name: '오른쪽 구역', make: () => lightsWhere((r, c) => r > 0 && c > 3) },
   { name: '센터 핀 (솔로)', make: () => lightsWhere((r, c) => r === 1 && (c === 2 || c === 3)) },
   { name: '파란 분위기', make: () => fill('#2a5bff', 70) },
   { name: '빨간 분위기', make: () => fill('#ff2a2a', 70) },
@@ -1320,7 +1320,7 @@ function renderSelection() {
   const n = state.selected.size;
   $('#selInfo').textContent = n
     ? `선택한 조명 ${n}개에 적용돼요. (무대 조명이나 섹션 목록의 점을 눌러 선택/해제)`
-    : '선택 없음 → 워시 조명 전체에 적용돼요. 빔 조명은 직접 골라야 해요.';
+    : '선택 없음 → 기본조명 전체에 적용돼요. 빔 조명은 직접 골라야 해요.';
   const cue = activeCue();
   if (!cue) return;
   const pb = prismTargets();

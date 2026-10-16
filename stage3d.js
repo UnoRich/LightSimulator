@@ -508,6 +508,7 @@ export function createStage(container, { onToggle, onRow }) {
       Object.assign(L.to, { r: tmp.r, g: tmp.g, b: tmp.b, o, p: l.p ? 1 : 0, f: l.f ? 1 : 0, m });
       L.t0 = now;
       L.dur = fade;
+      if (!(fade > 0)) Object.assign(L.cur, L.to); // 바로 바꾸기 (곧이어 다른 전환을 걸 수 있게)
 
       const { mark } = marks[i];
       mark.title = `${ROW_NAMES[rowOf(i)]} ${colOf(i) + 1}번 · 밝기 ${l.b}%${l.p ? ' · 프리즘' : ''}${l.f ? ' · 센터 모으기' : ''}${l.m ? ' · 무빙' : ''}`;
@@ -543,6 +544,7 @@ export function createStage(container, { onToggle, onRow }) {
     front.to = pct / 100;
     front.t0 = performance.now();
     front.dur = fade;
+    if (!(fade > 0)) front.cur = front.to;
   }
 
   // 댄서 배치: pos = [[x, z], ...] (앞쪽 count명만 보임), dur초 동안 이동

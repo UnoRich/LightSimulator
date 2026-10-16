@@ -1,6 +1,6 @@
-import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=55';
-import { GIRLS_DEMO, GIRLS_DEMO_NAMES, GIRLS_DEMO_COUNT } from './demo-girls.js?v=55';
-import { DRILL_DEMO, DRILL_DEMO_NAMES, DRILL_DEMO_COUNT } from './demo-drill.js?v=55';
+import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=56';
+import { GIRLS_DEMO, GIRLS_DEMO_NAMES, GIRLS_DEMO_COUNT } from './demo-girls.js?v=56';
+import { DRILL_DEMO, DRILL_DEMO_NAMES, DRILL_DEMO_COUNT } from './demo-drill.js?v=56';
 
 /* =========================================================
    상수
@@ -554,7 +554,19 @@ function loop() {
   drawTimeline();
   if (!audio.paused) raf = requestAnimationFrame(loop);
 }
-audio.addEventListener('play', () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(loop); renderPlayButtons(); });
+// 섹션 시작 지점(전환 시간 안)에서 재생을 누르면, 이미 켜져 있어도 이전 상태(첫 섹션이면 암전)에서 다시 전환
+function replayFadeOnPlay() {
+  const cue = cueAt(audio.currentTime);
+  if (!stage3d || !cue || !(cue.fade > 0)) return;
+  const left = cue.fade - (audio.currentTime - cue.time);
+  if (left <= 0.05) return;
+  const list = cues(), prev = list[list.indexOf(cue) - 1];
+  stage3d.setLights(prev ? prev.lights : fill('#ffffff', 0), 0);
+  stage3d.setFrontLights(prev ? frontOf(prev) : 0, 0);
+  stage3d.setLights(cue.lights, left);
+  stage3d.setFrontLights(frontOf(cue), left);
+}
+audio.addEventListener('play', () => { replayFadeOnPlay(); cancelAnimationFrame(raf); raf = requestAnimationFrame(loop); renderPlayButtons(); });
 audio.addEventListener('pause', () => { renderPlayButtons(); syncToPlayhead(false); drawTimeline(); });
 audio.addEventListener('ended', renderPlayButtons);
 audio.addEventListener('loadedmetadata', () => { renderTime(); drawTimeline(); });

@@ -1,6 +1,6 @@
-import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=63';
-import { GIRLS_DEMO, GIRLS_DEMO_NAMES, GIRLS_DEMO_COUNT } from './demo-girls.js?v=63';
-import { DRILL_DEMO, DRILL_DEMO_NAMES, DRILL_DEMO_COUNT } from './demo-drill.js?v=63';
+import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=64';
+import { GIRLS_DEMO, GIRLS_DEMO_NAMES, GIRLS_DEMO_COUNT } from './demo-girls.js?v=64';
+import { DRILL_DEMO, DRILL_DEMO_NAMES, DRILL_DEMO_COUNT } from './demo-drill.js?v=64';
 
 /* =========================================================
    상수
@@ -1193,7 +1193,6 @@ function renderCueList() {
     const active = c.id === state.activeCueId;
     const nm = el('span', 'n', c.name || '(이름 없음)');
     nm.title = '이름을 누르면 바로 바꿀 수 있어요';
-    if (c.note) { const ic = el('span', 'note-ic', '💬'); ic.title = c.note; nm.append(ic); li.title = c.note; }
     nm.addEventListener('click', e => { e.stopPropagation(); renameInList(c, nm); });
     li.append(el('span', 'no', idx + 1), el('span', 't', fmt(c.time)), nm,
       miniGrid(c.lights, i => pickCueLight(c, i), active ? state.selected : null, frontOf(c), () => setCueFront(c)));
@@ -1201,6 +1200,17 @@ function renderCueList() {
     del.title = '섹션 삭제';
     del.addEventListener('click', e => { e.stopPropagation(); deleteCue(c.id); });
     li.append(del);
+    // 코멘트는 아래에 얇은 줄로 (누르면 코멘트 칸으로)
+    if (c.note) {
+      const nt = el('div', 'note', '💬 ' + c.note.replace(/\s*\n\s*/g, ' · '));
+      nt.title = c.note;
+      nt.addEventListener('click', e => {
+        e.stopPropagation();
+        if (c.id !== state.activeCueId) seek(c.time);
+        setTimeout(() => $('#cueNote').focus(), 0);
+      });
+      li.append(nt);
+    }
     li.addEventListener('click', () => seek(c.time));
     ol.append(li);
   });

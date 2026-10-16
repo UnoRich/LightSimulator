@@ -1,6 +1,6 @@
-import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=60';
-import { GIRLS_DEMO, GIRLS_DEMO_NAMES, GIRLS_DEMO_COUNT } from './demo-girls.js?v=60';
-import { DRILL_DEMO, DRILL_DEMO_NAMES, DRILL_DEMO_COUNT } from './demo-drill.js?v=60';
+import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=61';
+import { GIRLS_DEMO, GIRLS_DEMO_NAMES, GIRLS_DEMO_COUNT } from './demo-girls.js?v=61';
+import { DRILL_DEMO, DRILL_DEMO_NAMES, DRILL_DEMO_COUNT } from './demo-drill.js?v=61';
 
 /* =========================================================
    상수
@@ -1652,6 +1652,124 @@ async function exportProject() {
   toast('파일을 저장했어요. 카톡 등으로 공유하세요');
 }
 
+/* =========================================================
+   섹션별 무대 사진 저장: 전환이 끝난 모습을 찍고 위에 섹션 이름/시작/전환 표시
+   ========================================================= */
+// 섹션 c에서 시각 t까지 시작된 대형 (이동은 끝난 위치)
+function formationAt(c, t) {
+  let pos = c.pos;
+  (c.steps || []).forEach(st => { if (st.t <= t + 0.001) pos = st.pos; });
+  return pos;
+}
+const safeName = s => (s || '').replace(/[\\/:*?"<>|]/g, '_').trim();
+
+function sectionPhoto(c, idx) {
+  const src = stage3d.capture();
+  const sw = src.width, sh = src.height;
+  const k = sw / 1000; // 글자 크기를 사진 크기에 맞춤
+  const bar = Math.round(Math.max(64, 92 * k));
+  const cv = el('canvas');
+  cv.width = sw; cv.height = sh + bar;
+  const g = cv.getContext('2d');
+  g.drawImage(src, 0, bar);
+  g.fillStyle = '#121419';
+  g.fillRect(0, 0, sw, bar);
+  const pad = Math.round(22 * k), font = '"Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif';
+  g.textBaseline = 'middle';
+  g.fillStyle = '#7b8cff';
+  g.font = `700 ${Math.round(28 * k)}px ${font}`;
+  const no = String(idx + 1).padStart(2, '0');
+  g.fillText(no, pad, bar * 0.36);
+  const nx = pad + g.measureText(no).width + Math.round(14 * k);
+  g.fillStyle = '#ffffff';
+  g.fillText(c.name || '(이름 없음)', nx, bar * 0.36);
+  g.fillStyle = '#b8bccb';
+  g.font = `500 ${Math.round(19 * k)}px ${font}`;
+  g.fillText(`시작 ${fmt(c.time)}   ·   전환 ${+(+c.fade || 0).toFixed(1)}초`, nx, bar * 0.74);
+  g.textAlign = 'right';
+  g.fillStyle = '#6c7080';
+  g.font = `500 ${Math.round(16 * k)}px ${font}`;
+  g.fillText(state.project.name || '', sw - pad, bar * 0.36);
+  return new Promise(r => cv.toBlob(r, 'image/png'));
+}
+
+// 압축 없는 ZIP 만들기 (PNG는 이미 압축돼 있음)
+const CRC_T = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+function crc32(u8) { let c = 0xffffffff; for (let i = 0; i < u8.length; i++) c = CRC_T[(c ^ u8[i]) & 0xff] ^ (c >>> 8); return (c ^ 0xffffffff) >>> 0; }
+async function makeZip(files) {
+  const enc = new TextEncoder(), parts = [], central = [];
+  let off = 0;
+  for (const f of files) {
+    const data = new Uint8Array(await f.blob.arrayBuffer()), name = enc.encode(f.name), crc = crc32(data);
+    const h = new DataView(new ArrayBuffer(30));
+    h.setUint32(0, 0x04034b50, true); h.setUint16(4, 20, true); h.setUint16(6, 0x0800, true);
+    h.setUint32(14, crc, true); h.setUint32(18, data.length, true); h.setUint32(22, data.length, true); h.setUint16(26, name.length, true);
+    parts.push(h, name, data);
+    const ch = new DataView(new ArrayBuffer(46));
+    ch.setUint32(0, 0x02014b50, true); ch.setUint16(4, 20, true); ch.setUint16(6, 20, true); ch.setUint16(8, 0x0800, true);
+    ch.setUint32(16, crc, true); ch.setUint32(20, data.length, true); ch.setUint32(24, data.length, true); ch.setUint16(28, name.length, true);
+    ch.setUint32(42, off, true);
+    central.push(ch, name);
+    off += 30 + name.length + data.length;
+  }
+  const size = central.reduce((a, x) => a + x.byteLength, 0);
+  const end = new DataView(new ArrayBuffer(22));
+  end.setUint32(0, 0x06054b50, true); end.setUint16(8, files.length, true); end.setUint16(10, files.length, true);
+  end.setUint32(12, size, true); end.setUint32(16, off, true);
+  return new Blob([...parts, ...central, end], { type: 'application/zip' });
+}
+
+function download(blob, name) {
+  const a = el('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+}
+
+let photoBusy = false;
+async function savePhotos() {
+  const p = state.project, list = cues();
+  if (!p || !stage3d) return;
+  if (!list.length) { toast('먼저 섹션을 추가하세요'); return; }
+  if (photoBusy) return;
+  photoBusy = true;
+  if (!audio.paused) audio.pause();
+  const wasSel = state.selected;
+  stage3d.setSelected(new Set());
+  const files = [];
+  try {
+    for (let i = 0; i < list.length; i++) {
+      const c = list[i];
+      toast(`사진 만드는 중… ${i + 1}/${list.length}`);
+      stage3d.setLights(c.lights, 0);
+      stage3d.setFrontLights(frontOf(c), 0);
+      stage3d.setDancers(formationAt(c, c.time + (+c.fade || 0)), dancerCount(), 0);
+      await new Promise(r => requestAnimationFrame(r));
+      const blob = await sectionPhoto(c, i);
+      files.push({ name: `${String(i + 1).padStart(2, '0')}_${safeName(c.name) || '섹션'}.png`, blob });
+    }
+  } finally {
+    // 원래 화면으로 되돌리기
+    state.selected = wasSel;
+    state.danceKey = null;
+    renderStage(currentLights(), 0);
+    renderSelection();
+    photoBusy = false;
+  }
+  const base = safeName(p.name) || '공연';
+  // 폰: 공유 창으로 사진 바로 저장, 그 밖: ZIP 하나로 다운로드
+  const imgs = files.map(f => new File([f.blob], f.name, { type: 'image/png' }));
+  if (matchMedia('(pointer: coarse)').matches && navigator.canShare && navigator.canShare({ files: imgs })) {
+    try { await navigator.share({ files: imgs, title: `${base} 섹션 사진` }); toast(`사진 ${files.length}장을 만들었어요`); return; }
+    catch (e) { if (e.name === 'AbortError') return; }
+  }
+  download(await makeZip(files), `${base}_섹션사진.zip`);
+  toast(`섹션 사진 ${files.length}장을 ZIP으로 저장했어요`);
+}
+
 async function importFile(file) {
   let data;
   try { data = JSON.parse(await file.text()); }
@@ -1759,6 +1877,7 @@ function bindEvents() {
   $('#btnProjList').addEventListener('click', e => { e.stopPropagation(); pl.hidden = !pl.hidden; });
   document.addEventListener('click', e => { if (!pl.hidden && !e.target.closest('.proj-box')) pl.hidden = true; });
   $('#btnExport').addEventListener('click', exportProject);
+  $('#btnPhotos').addEventListener('click', savePhotos);
   $('#btnImport').addEventListener('click', () => $('#fileImport').click());
   $('#fileImport').addEventListener('change', e => { if (e.target.files[0]) importFile(e.target.files[0]); e.target.value = ''; });
 

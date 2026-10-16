@@ -412,6 +412,10 @@ export function createStage(container, { onToggle, onRow }) {
   const ease = k => k * k * (3 - 2 * k);
 
   function tick() {
+    update();
+    requestAnimationFrame(tick);
+  }
+  function update() {
     const now = performance.now();
     const t = clock.getElapsedTime();
     for (const L of lights) {
@@ -491,9 +495,14 @@ export function createStage(container, { onToggle, onRow }) {
     controls.update();
     placeMarks();
     composer.render();
-    requestAnimationFrame(tick);
   }
   requestAnimationFrame(tick);
+
+  // 지금 상태를 바로 그려서 캔버스를 돌려줌 (같은 작업 안에서 drawImage 해야 함)
+  function capture() {
+    update();
+    return renderer.domElement;
+  }
 
   /* ---------- 공개 API ---------- */
   function setLights(list, fade = 0.15) {
@@ -563,7 +572,7 @@ export function createStage(container, { onToggle, onRow }) {
     });
   }
 
-  return { setLights, setSelected, resetView, setHouseLights, toggleHouseLights, setFrontLights, setDancers };
+  return { capture, setLights, setSelected, resetView, setHouseLights, toggleHouseLights, setFrontLights, setDancers };
 }
 
 /* =========================================================

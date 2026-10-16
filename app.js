@@ -1,6 +1,6 @@
-import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=65';
-import { GIRLS_DEMO, GIRLS_DEMO_NAMES, GIRLS_DEMO_COUNT } from './demo-girls.js?v=65';
-import { DRILL_DEMO, DRILL_DEMO_NAMES, DRILL_DEMO_COUNT } from './demo-drill.js?v=65';
+import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=66';
+import { GIRLS_DEMO, GIRLS_DEMO_NAMES, GIRLS_DEMO_COUNT } from './demo-girls.js?v=66';
+import { DRILL_DEMO, DRILL_DEMO_NAMES, DRILL_DEMO_COUNT } from './demo-drill.js?v=66';
 
 /* =========================================================
    상수
@@ -215,9 +215,9 @@ const makeGirlsCues = () => cuesFromData(GIRLS_DEMO);
 // 데모 목록 (version이 올라가면 이미 있는 그 데모 공연을 새 내용으로 갱신)
 const DEMOS = {
   drill: { title: '힙합 드릴', name: '데모: 힙합 드릴', song: 'BAND4BAND (Central Cee ft. Lil Baby)',
-    duration: 151.2, version: 12, dancers: DRILL_DEMO_COUNT || 11, names: demoNames(DRILL_DEMO_NAMES), music: 'Demo music/Demo1/music', make: makeDrillCues },
+    duration: 151.2, version: 13, dancers: DRILL_DEMO_COUNT || 11, names: demoNames(DRILL_DEMO_NAMES), music: 'Demo music/Demo1/music', make: makeDrillCues },
   girls: { title: '걸스 스타일', name: '데모: 걸스 스타일', song: 'CHAT (GIRLSET)',
-    duration: 172.7, version: 13, dancers: GIRLS_DEMO_COUNT || 6, names: demoNames(GIRLS_DEMO_NAMES), music: 'Demo music/Demo2/music', make: makeGirlsCues },
+    duration: 172.7, version: 14, dancers: GIRLS_DEMO_COUNT || 6, names: demoNames(GIRLS_DEMO_NAMES), music: 'Demo music/Demo2/music', make: makeGirlsCues },
 };
 const demoKey = p => p && p.demo ? (p.demo.id || 'drill') : null;
 function newDemoProject(key) {

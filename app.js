@@ -1,6 +1,6 @@
-import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=68';
-import { GIRLS_DEMO, GIRLS_DEMO_NAMES, GIRLS_DEMO_COUNT } from './demo-girls.js?v=68';
-import { DRILL_DEMO, DRILL_DEMO_NAMES, DRILL_DEMO_COUNT } from './demo-drill.js?v=68';
+import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=69';
+import { GIRLS_DEMO, GIRLS_DEMO_NAMES, GIRLS_DEMO_COUNT } from './demo-girls.js?v=69';
+import { DRILL_DEMO, DRILL_DEMO_NAMES, DRILL_DEMO_COUNT } from './demo-drill.js?v=69';
 
 /* =========================================================
    상수
@@ -15,7 +15,7 @@ const SWATCHES = [
   ['#8a2aff', '보라'], ['#ff2ad0', '핑크'],
 ];
 const DEFAULT_FADE = 0.5;
-const GUIDE_VIDEO = 'https://www.youtube-nocookie.com/embed/6JEd0IpygAk?autoplay=1&rel=0';
+const GUIDE_VIDEO = 'https://www.youtube-nocookie.com/embed/KNE1z02yW6k?autoplay=1&rel=0';
 
 const DEFAULT_NAME = '새 공연';
 

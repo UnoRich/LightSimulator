@@ -36,7 +36,7 @@ button.accent { background: var(--accent); border-color: var(--accent); color: #
 button.accent:hover { background: #ffc46b; }
 button.danger { color: var(--danger); }
 button.small { padding: 5px 10px; font-size: 13px; }
-select, input[type=text], input[type=number] {
+select, input[type=text], input[type=number], textarea {
   background: var(--panel-2);
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -365,6 +365,9 @@ h3 small { font-weight: 400; font-size: 11px; margin-left: 4px; }
 .field { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); }
 .field.grow { flex: 1; min-width: 140px; }
 .field input[type=text] { width: 100%; }
+.field textarea { width: 100%; resize: vertical; min-height: 44px; font: inherit; font-size: 13px; color: var(--text, inherit); line-height: 1.4; }
+textarea:focus { outline: 2px solid var(--primary); outline-offset: 1px; }
+.cue-list .note-ic { margin-left: 4px; font-size: 11px; opacity: .8; }
 #cueTime { width: 90px; }
 #cueFade { width: 72px; }
 

@@ -1,6 +1,6 @@
-import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=62';
-import { GIRLS_DEMO, GIRLS_DEMO_NAMES, GIRLS_DEMO_COUNT } from './demo-girls.js?v=62';
-import { DRILL_DEMO, DRILL_DEMO_NAMES, DRILL_DEMO_COUNT } from './demo-drill.js?v=62';
+import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=63';
+import { GIRLS_DEMO, GIRLS_DEMO_NAMES, GIRLS_DEMO_COUNT } from './demo-girls.js?v=63';
+import { DRILL_DEMO, DRILL_DEMO_NAMES, DRILL_DEMO_COUNT } from './demo-drill.js?v=63';
 
 /* =========================================================
    상수
@@ -199,6 +199,7 @@ function cuesFromData(data) {
       pos: fullPos(c.pos),
     };
     if (c.move) cue.move = c.move;
+    if (c.note) cue.note = c.note;
     if (c.steps) cue.steps = c.steps.map(st => ({ t: st.t, move: st.move, pos: fullPos(st.pos) }));
     return cue;
   });
@@ -1192,6 +1193,7 @@ function renderCueList() {
     const active = c.id === state.activeCueId;
     const nm = el('span', 'n', c.name || '(이름 없음)');
     nm.title = '이름을 누르면 바로 바꿀 수 있어요';
+    if (c.note) { const ic = el('span', 'note-ic', '💬'); ic.title = c.note; nm.append(ic); li.title = c.note; }
     nm.addEventListener('click', e => { e.stopPropagation(); renameInList(c, nm); });
     li.append(el('span', 'no', idx + 1), el('span', 't', fmt(c.time)), nm,
       miniGrid(c.lights, i => pickCueLight(c, i), active ? state.selected : null, frontOf(c), () => setCueFront(c)));
@@ -1298,6 +1300,8 @@ function renderEditor() {
   if (document.activeElement !== time) time.value = fmt(cue.time);
   const fade = $('#cueFade');
   if (document.activeElement !== fade) fade.value = cue.fade;
+  const note = $('#cueNote');
+  if (document.activeElement !== note) note.value = cue.note || '';
   renderSelection();
 }
 
@@ -1663,33 +1667,80 @@ function formationAt(c, t) {
 }
 const safeName = s => (s || '').replace(/[\\/:*?"<>|]/g, '_').trim();
 
+// 글자를 maxW 폭에 맞춰 줄바꿈 (줄바꿈 문자 유지, 너무 길면 maxLines에서 …)
+function wrapText(g, text, maxW, maxLines) {
+  const out = [];
+  for (const para of String(text).split('\n')) {
+    let line = '';
+    for (const ch of para) {
+      if (line && g.measureText(line + ch).width > maxW) {
+        // 공백에서 끊을 수 있으면 단어 단위로
+        const sp = line.lastIndexOf(' ');
+        if (sp > 0 && sp > line.length - 12) { out.push(line.slice(0, sp)); line = line.slice(sp + 1) + ch; }
+        else { out.push(line); line = ch; }
+      } else line += ch;
+    }
+    out.push(line);
+  }
+  if (out.length > maxLines) {
+    out.length = maxLines;
+    let last = out[maxLines - 1];
+    while (last && g.measureText(last + '…').width > maxW) last = last.slice(0, -1);
+    out[maxLines - 1] = last + '…';
+  }
+  return out;
+}
+
 function sectionPhoto(c, idx) {
   const src = stage3d.capture();
   const sw = src.width, sh = src.height;
   const k = sw / 1000; // 글자 크기를 사진 크기에 맞춤
-  const bar = Math.round(Math.max(64, 92 * k));
+  const font = '"Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif';
+  const pad = Math.round(22 * k);
+  // 코멘트(오른쪽 위): 줄 수에 맞춰 위쪽 띠 높이를 늘림
+  const tmp = el('canvas').getContext('2d');
+  const noteSize = Math.round(17 * k), noteLH = Math.round(noteSize * 1.4);
+  tmp.font = `500 ${noteSize}px ${font}`;
+  const note = c.note && c.note.trim() ? wrapText(tmp, c.note.trim(), sw * 0.46, 6) : [];
+  const bar = Math.round(Math.max(64, 92 * k, note.length ? pad * 1.6 + note.length * noteLH : 0));
   const cv = el('canvas');
   cv.width = sw; cv.height = sh + bar;
   const g = cv.getContext('2d');
   g.drawImage(src, 0, bar);
   g.fillStyle = '#121419';
   g.fillRect(0, 0, sw, bar);
-  const pad = Math.round(22 * k), font = '"Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif';
+  const top = Math.round(Math.min(bar, 92 * k) / 2); // 왼쪽 글자는 띠 위쪽 기준
   g.textBaseline = 'middle';
   g.fillStyle = '#7b8cff';
   g.font = `700 ${Math.round(28 * k)}px ${font}`;
   const no = String(idx + 1).padStart(2, '0');
-  g.fillText(no, pad, bar * 0.36);
+  g.fillText(no, pad, top * 0.72);
   const nx = pad + g.measureText(no).width + Math.round(14 * k);
   g.fillStyle = '#ffffff';
-  g.fillText(c.name || '(이름 없음)', nx, bar * 0.36);
+  g.fillText(c.name || '(이름 없음)', nx, top * 0.72);
   g.fillStyle = '#b8bccb';
   g.font = `500 ${Math.round(19 * k)}px ${font}`;
-  g.fillText(`시작 ${fmt(c.time)}   ·   전환 ${+(+c.fade || 0).toFixed(1)}초`, nx, bar * 0.74);
+  g.fillText(`시작 ${fmt(c.time)}   ·   전환 ${+(+c.fade || 0).toFixed(1)}초`, nx, top * 1.48);
   g.textAlign = 'right';
-  g.fillStyle = '#6c7080';
-  g.font = `500 ${Math.round(16 * k)}px ${font}`;
-  g.fillText(state.project.name || '', sw - pad, bar * 0.36);
+  if (note.length) {
+    // 코멘트 상자
+    g.font = `500 ${noteSize}px ${font}`;
+    const w = Math.max(...note.map(l => g.measureText(l).width));
+    const ip = pad * 0.6, bw = w + ip * 2, bx = sw - pad - bw, by = pad * 0.45, bh = note.length * noteLH + pad * 0.7;
+    g.fillStyle = '#2a2512';
+    g.strokeStyle = '#7a6420';
+    g.lineWidth = Math.max(1, k);
+    g.beginPath();
+    g.roundRect ? g.roundRect(bx, by, bw, bh, 8 * k) : g.rect(bx, by, bw, bh);
+    g.fill(); g.stroke();
+    g.fillStyle = '#ffe39a';
+    g.textAlign = 'left';
+    note.forEach((l, i) => g.fillText(l, bx + ip, by + pad * 0.35 + noteLH * (i + 0.5)));
+  } else {
+    g.fillStyle = '#6c7080';
+    g.font = `500 ${Math.round(16 * k)}px ${font}`;
+    g.fillText(state.project.name || '', sw - pad, top * 0.72);
+  }
   return new Promise(r => cv.toBlob(r, 'image/png'));
 }
 
@@ -1788,6 +1839,7 @@ async function importFile(file) {
       time: clamp(+c.time || 0, 0, 36000),
       name: String(c.name || ''),
       fade: clamp(+c.fade || 0, 0, 10),
+      note: c.note && String(c.note).trim() ? String(c.note).slice(0, 300) : undefined,
       lights: normalizeLights(c.lights),
       front: FRONT_STEPS.includes(c.front) ? c.front : 100,
       pos: normalizePos(c.pos),
@@ -1883,7 +1935,7 @@ function bindEvents() {
 
   // 섹션 편집
   // 섹션 편집 입력칸: 들어간 순간의 섹션을 기억해 두고 그 섹션에 반영
-  for (const id of ['#cueName', '#cueTime', '#cueFade']) {
+  for (const id of ['#cueName', '#cueTime', '#cueFade', '#cueNote']) {
     $(id).addEventListener('focus', () => { editing.cueId = activeCue() ? activeCue().id : null; });
     $(id).addEventListener('blur', () => { setTimeout(() => { editing.cueId = null; renderEditor(); }, 0); });
   }
@@ -1893,6 +1945,12 @@ function bindEvents() {
     const c = editingCue(); if (!c) return;
     c.name = e.target.value;
     save(); renderCueList(); renderHud(); drawTimeline();
+  });
+  $('#cueNote').addEventListener('input', e => {
+    const c = editingCue(); if (!c) return;
+    const v = e.target.value.slice(0, 300);
+    if (v.trim()) c.note = v; else delete c.note;
+    save(); renderCueList();
   });
   $('#cueTime').addEventListener('change', e => {
     const c = editingCue(); if (!c) return;

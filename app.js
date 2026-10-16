@@ -1,6 +1,6 @@
-import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=64';
-import { GIRLS_DEMO, GIRLS_DEMO_NAMES, GIRLS_DEMO_COUNT } from './demo-girls.js?v=64';
-import { DRILL_DEMO, DRILL_DEMO_NAMES, DRILL_DEMO_COUNT } from './demo-drill.js?v=64';
+import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=65';
+import { GIRLS_DEMO, GIRLS_DEMO_NAMES, GIRLS_DEMO_COUNT } from './demo-girls.js?v=65';
+import { DRILL_DEMO, DRILL_DEMO_NAMES, DRILL_DEMO_COUNT } from './demo-drill.js?v=65';
 
 /* =========================================================
    상수
@@ -1196,19 +1196,19 @@ function renderCueList() {
     nm.addEventListener('click', e => { e.stopPropagation(); renameInList(c, nm); });
     li.append(el('span', 'no', idx + 1), el('span', 't', fmt(c.time)), nm,
       miniGrid(c.lights, i => pickCueLight(c, i), active ? state.selected : null, frontOf(c), () => setCueFront(c)));
+    const nb = el('button', 'nb' + (c.note ? ' has' : ''), '💬');
+    nb.title = c.note ? '코멘트 수정' : '코멘트 달기';
+    nb.addEventListener('click', e => { e.stopPropagation(); noteInList(c); });
+    li.append(nb);
     const del = el('button', 'del', '✕');
     del.title = '섹션 삭제';
     del.addEventListener('click', e => { e.stopPropagation(); deleteCue(c.id); });
     li.append(del);
-    // 코멘트는 아래에 얇은 줄로 (누르면 코멘트 칸으로)
+    // 코멘트는 아래에 얇은 줄로 (누르면 그 자리에서 수정)
     if (c.note) {
       const nt = el('div', 'note', '💬 ' + c.note.replace(/\s*\n\s*/g, ' · '));
-      nt.title = c.note;
-      nt.addEventListener('click', e => {
-        e.stopPropagation();
-        if (c.id !== state.activeCueId) seek(c.time);
-        setTimeout(() => $('#cueNote').focus(), 0);
-      });
+      nt.title = c.note + '\n(누르면 수정)';
+      nt.addEventListener('click', e => { e.stopPropagation(); noteInList(c); });
       li.append(nt);
     }
     li.addEventListener('click', () => seek(c.time));
@@ -1250,6 +1250,41 @@ function renameInList(c, span) {
     else if (e.key === 'Escape') finish(false);
   });
   input.addEventListener('blur', () => finish(true));
+}
+
+// 섹션 목록에서 바로 코멘트 쓰기: 섹션 아래에 입력 줄이 열림
+// Enter/바깥 클릭 = 저장, Shift+Enter = 줄바꿈, Esc = 취소
+function noteInList(c) {
+  if (c.id !== state.activeCueId) seek(c.time);
+  const li = [...$$('#cueList li')].find(x => x.dataset.id === c.id);
+  if (!li) return;
+  const ta = el('textarea', 'note-edit');
+  ta.value = c.note || '';
+  ta.maxLength = 300;
+  ta.rows = 2;
+  ta.placeholder = '코멘트 (Enter 저장 · Shift+Enter 줄바꿈 · Esc 취소)';
+  const old = li.querySelector('.note');
+  if (old) old.replaceWith(ta); else li.append(ta);
+  ta.focus();
+  ta.setSelectionRange(ta.value.length, ta.value.length);
+  let done = false;
+  const finish = ok => {
+    if (done) return;
+    done = true;
+    if (ok) {
+      const v = ta.value.trim();
+      if (v) c.note = v; else delete c.note;
+      save(); renderEditor();
+    }
+    renderCueList();
+  };
+  ta.addEventListener('click', e => e.stopPropagation());
+  ta.addEventListener('keydown', e => {
+    e.stopPropagation();
+    if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); finish(true); }
+    else if (e.key === 'Escape') finish(false);
+  });
+  ta.addEventListener('blur', () => finish(true));
 }
 
 function addCue() {

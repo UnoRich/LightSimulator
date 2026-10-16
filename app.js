@@ -1,6 +1,6 @@
-import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=56';
-import { GIRLS_DEMO, GIRLS_DEMO_NAMES, GIRLS_DEMO_COUNT } from './demo-girls.js?v=56';
-import { DRILL_DEMO, DRILL_DEMO_NAMES, DRILL_DEMO_COUNT } from './demo-drill.js?v=56';
+import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=57';
+import { GIRLS_DEMO, GIRLS_DEMO_NAMES, GIRLS_DEMO_COUNT } from './demo-girls.js?v=57';
+import { DRILL_DEMO, DRILL_DEMO_NAMES, DRILL_DEMO_COUNT } from './demo-drill.js?v=57';
 
 /* =========================================================
    상수
@@ -1185,7 +1185,7 @@ function renderCueList() {
     ol.append(el('li', 'empty-li', '아직 섹션이 없어요'));
     return;
   }
-  for (const c of list) {
+  list.forEach((c, idx) => {
     const li = el('li');
     li.dataset.id = c.id;
     if (c.id === state.activeCueId) li.classList.add('active');
@@ -1193,7 +1193,7 @@ function renderCueList() {
     const nm = el('span', 'n', c.name || '(이름 없음)');
     nm.title = '이름을 누르면 바로 바꿀 수 있어요';
     nm.addEventListener('click', e => { e.stopPropagation(); renameInList(c, nm); });
-    li.append(el('span', 't', fmt(c.time)), nm,
+    li.append(el('span', 'no', idx + 1), el('span', 't', fmt(c.time)), nm,
       miniGrid(c.lights, i => pickCueLight(c, i), active ? state.selected : null, frontOf(c), () => setCueFront(c)));
     const del = el('button', 'del', '✕');
     del.title = '섹션 삭제';
@@ -1201,7 +1201,7 @@ function renderCueList() {
     li.append(del);
     li.addEventListener('click', () => seek(c.time));
     ol.append(li);
-  }
+  });
   // 재생 중엔 지금 섹션이 보이게 목록 안에서만 스크롤 (페이지 전체는 움직이지 않음)
   const act = ol.querySelector('.active');
   if (act && !audio.paused) {

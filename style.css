@@ -338,12 +338,14 @@ h3 small { font-weight: 400; font-size: 11px; margin-left: 4px; }
 .quick.off { opacity: .35; pointer-events: none; }
 .cue-list { position: relative; list-style: none; margin: 0; padding: 0; max-height: 300px; overflow-y: auto; }
 .cue-list li {
-  display: grid; grid-template-columns: 56px 1fr auto auto; align-items: center; gap: 10px;
+  display: grid; grid-template-columns: 20px 50px 1fr auto auto; align-items: center; gap: 8px;
   padding: 7px 8px; border-radius: 8px; cursor: pointer;
   border: 1px solid transparent;
 }
 .cue-list li:hover { background: var(--panel-2); }
 .cue-list li.active { background: #222842; border-color: #3b4a8c; }
+.cue-list .no { font-variant-numeric: tabular-nums; color: var(--muted); font-size: 12px; font-weight: 600; text-align: right; }
+.cue-list li.active .no { color: var(--primary); }
 .cue-list .t { font-variant-numeric: tabular-nums; color: var(--muted); font-size: 12px; }
 .cue-list .n { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: text; }
 .cue-list .n:hover { text-decoration: underline dotted; text-underline-offset: 3px; }

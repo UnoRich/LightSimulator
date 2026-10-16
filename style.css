@@ -201,6 +201,13 @@ kbd {
 }
 .hud-next { font-size: 12px; color: #c9ccd6; background: rgba(0,0,0,.45); padding: 3px 10px; border-radius: 6px; }
 .hud-next:empty { display: none; }
+.hud-right { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+.sel-all {
+  pointer-events: auto; font-size: 12px; padding: 4px 10px; text-shadow: none;
+  background: rgba(0,0,0,.55); border-color: rgba(255,255,255,.15);
+}
+.sel-all.on { border-color: var(--accent); color: var(--accent); }
+body.show .sel-all { display: none; }
 
 .show-bar { display: none; }
 

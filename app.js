@@ -1,6 +1,6 @@
-import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=58';
-import { GIRLS_DEMO, GIRLS_DEMO_NAMES, GIRLS_DEMO_COUNT } from './demo-girls.js?v=58';
-import { DRILL_DEMO, DRILL_DEMO_NAMES, DRILL_DEMO_COUNT } from './demo-drill.js?v=58';
+import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=59';
+import { GIRLS_DEMO, GIRLS_DEMO_NAMES, GIRLS_DEMO_COUNT } from './demo-girls.js?v=59';
+import { DRILL_DEMO, DRILL_DEMO_NAMES, DRILL_DEMO_COUNT } from './demo-drill.js?v=59';
 
 /* =========================================================
    상수
@@ -1321,6 +1321,9 @@ function renderSelection() {
   $('#selInfo').textContent = n
     ? `선택한 조명 ${n}개에 적용돼요. (무대 조명이나 섹션 목록의 점을 눌러 선택/해제)`
     : '선택 없음 → 기본조명 전체에 적용돼요. 빔 조명은 직접 골라야 해요.';
+  const all = n === N;
+  $('#btnSelAll').classList.toggle('on', all);
+  $('#btnSelAll').textContent = all ? '☐ 전체 해제' : '☑ 전체 선택';
   const cue = activeCue();
   if (!cue) return;
   const pb = prismTargets();
@@ -1723,6 +1726,7 @@ document.addEventListener('fullscreenchange', () => {
    ========================================================= */
 function bindEvents() {
   $('#btnPlay').addEventListener('click', togglePlay);
+  $('#btnSelAll').addEventListener('click', () => selectGroup(state.selected.size === N ? 'none' : 'all'));
   $('#showPlay').addEventListener('click', togglePlay);
   $('#btnPrev').addEventListener('click', () => jumpCue(-1));
   $('#btnNext').addEventListener('click', () => jumpCue(1));

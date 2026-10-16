@@ -1,6 +1,6 @@
-import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=61';
-import { GIRLS_DEMO, GIRLS_DEMO_NAMES, GIRLS_DEMO_COUNT } from './demo-girls.js?v=61';
-import { DRILL_DEMO, DRILL_DEMO_NAMES, DRILL_DEMO_COUNT } from './demo-drill.js?v=61';
+import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=62';
+import { GIRLS_DEMO, GIRLS_DEMO_NAMES, GIRLS_DEMO_COUNT } from './demo-girls.js?v=62';
+import { DRILL_DEMO, DRILL_DEMO_NAMES, DRILL_DEMO_COUNT } from './demo-drill.js?v=62';
 
 /* =========================================================
    상수
@@ -1323,7 +1323,7 @@ function renderSelection() {
     : '선택 없음 → 기본조명 전체에 적용돼요. 빔 조명은 직접 골라야 해요.';
   const all = n === N;
   $('#btnSelAll').classList.toggle('on', all);
-  $('#btnSelAll').textContent = all ? '☐ 전체 해제' : '☑ 전체 선택';
+  $('#btnSelAll').textContent = all ? '☐ 조명 전체해제' : '☑ 조명 전체선택';
   const cue = activeCue();
   if (!cue) return;
   const pb = prismTargets();

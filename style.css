@@ -101,6 +101,9 @@ kbd {
 .pop-menu[hidden] { display: none; }
 .pop-menu button { text-align: left; border-color: transparent; background: transparent; }
 .pop-menu button:hover { background: var(--panel-2); }
+.export-menu { left: auto; right: 0; min-width: 270px; }
+.export-menu button { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 8px 10px; }
+.export-menu small { color: var(--muted); font-size: 11.5px; }
 .guide-btn { border-color: #3b4a8c; background: #1c2240; color: #c9d3ff; }
 .guide-btn:hover { background: #26305a; }
 /* 사용법 영상 팝업 */

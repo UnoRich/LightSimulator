@@ -1,6 +1,6 @@
-import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=66';
-import { GIRLS_DEMO, GIRLS_DEMO_NAMES, GIRLS_DEMO_COUNT } from './demo-girls.js?v=66';
-import { DRILL_DEMO, DRILL_DEMO_NAMES, DRILL_DEMO_COUNT } from './demo-drill.js?v=66';
+import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=67';
+import { GIRLS_DEMO, GIRLS_DEMO_NAMES, GIRLS_DEMO_COUNT } from './demo-girls.js?v=67';
+import { DRILL_DEMO, DRILL_DEMO_NAMES, DRILL_DEMO_COUNT } from './demo-drill.js?v=67';
 
 /* =========================================================
    상수
@@ -215,9 +215,9 @@ const makeGirlsCues = () => cuesFromData(GIRLS_DEMO);
 // 데모 목록 (version이 올라가면 이미 있는 그 데모 공연을 새 내용으로 갱신)
 const DEMOS = {
   drill: { title: '힙합 드릴', name: '데모: 힙합 드릴', song: 'BAND4BAND (Central Cee ft. Lil Baby)',
-    duration: 151.2, version: 13, dancers: DRILL_DEMO_COUNT || 11, names: demoNames(DRILL_DEMO_NAMES), music: 'Demo music/Demo1/music', make: makeDrillCues },
+    duration: 151.2, version: 14, dancers: DRILL_DEMO_COUNT || 11, names: demoNames(DRILL_DEMO_NAMES), music: 'Demo music/Demo1/music', make: makeDrillCues },
   girls: { title: '걸스 스타일', name: '데모: 걸스 스타일', song: 'CHAT (GIRLSET)',
-    duration: 172.7, version: 14, dancers: GIRLS_DEMO_COUNT || 6, names: demoNames(GIRLS_DEMO_NAMES), music: 'Demo music/Demo2/music', make: makeGirlsCues },
+    duration: 172.7, version: 15, dancers: GIRLS_DEMO_COUNT || 6, names: demoNames(GIRLS_DEMO_NAMES), music: 'Demo music/Demo2/music', make: makeGirlsCues },
 };
 const demoKey = p => p && p.demo ? (p.demo.id || 'drill') : null;
 function newDemoProject(key) {
@@ -1826,26 +1826,26 @@ function download(blob, name) {
 }
 
 let photoBusy = false;
-async function savePhotos() {
-  const p = state.project, list = cues();
-  if (!p || !stage3d) return;
-  if (!list.length) { toast('먼저 섹션을 추가하세요'); return; }
-  if (photoBusy) return;
+// 섹션마다 전환이 끝난 모습으로 무대를 맞추고 shot(c, i)로 찍기 → 결과 목록
+async function shootSections(shot, label) {
+  const list = cues();
+  if (!state.project || !stage3d) return null;
+  if (!list.length) { toast('먼저 섹션을 추가하세요'); return null; }
+  if (photoBusy) return null;
   photoBusy = true;
   if (!audio.paused) audio.pause();
   const wasSel = state.selected;
   stage3d.setSelected(new Set());
-  const files = [];
+  const out = [];
   try {
     for (let i = 0; i < list.length; i++) {
       const c = list[i];
-      toast(`사진 만드는 중… ${i + 1}/${list.length}`);
+      toast(`${label}… ${i + 1}/${list.length}`);
       stage3d.setLights(c.lights, 0);
       stage3d.setFrontLights(frontOf(c), 0);
       stage3d.setDancers(formationAt(c, c.time + (+c.fade || 0)), dancerCount(), 0);
       await new Promise(r => requestAnimationFrame(r));
-      const blob = await sectionPhoto(c, i);
-      files.push({ name: `${String(i + 1).padStart(2, '0')}_${safeName(c.name) || '섹션'}.png`, blob });
+      out.push(await shot(c, i));
     }
   } finally {
     // 원래 화면으로 되돌리기
@@ -1855,6 +1855,16 @@ async function savePhotos() {
     renderSelection();
     photoBusy = false;
   }
+  return out;
+}
+
+async function savePhotos() {
+  const p = state.project;
+  const files = await shootSections(async (c, i) => ({
+    name: `${String(i + 1).padStart(2, '0')}_${safeName(c.name) || '섹션'}.png`,
+    blob: await sectionPhoto(c, i),
+  }), '사진 만드는 중');
+  if (!files) return;
   const base = safeName(p.name) || '공연';
   // 폰: 공유 창으로 사진 바로 저장, 그 밖: ZIP 하나로 다운로드
   const imgs = files.map(f => new File([f.blob], f.name, { type: 'image/png' }));
@@ -1864,6 +1874,138 @@ async function savePhotos() {
   }
   download(await makeZip(files), `${base}_섹션사진.zip`);
   toast(`섹션 사진 ${files.length}장을 ZIP으로 저장했어요`);
+}
+
+/* ---------- 조명 콘티 엑셀 (조명감독님 양식) ---------- */
+// 엑셀 표에 넣을 작은 무대 사진 (JPEG)
+function stageThumb(w = 560) {
+  const src = stage3d.capture();
+  const h = Math.round(w * src.height / src.width);
+  const cv = el('canvas');
+  cv.width = w; cv.height = h;
+  cv.getContext('2d').drawImage(src, 0, 0, w, h);
+  return new Promise(r => cv.toBlob(async b => r({ buf: await b.arrayBuffer(), w, h }), 'image/jpeg', 0.85));
+}
+
+// 코멘트가 없는 섹션은 조명 설정으로 간단히 설명 만들기
+const colorName = hex => (SWATCHES.find(([h]) => h === (hex || '').toLowerCase()) || [, '사용자색'])[1];
+function autoDescribe(c) {
+  const L = c.lights;
+  const wash = [...new Set(WASH_IDX.filter(i => L[i].b > 0).map(i => colorName(L[i].c)))];
+  const beamOn = BEAM_IDX.filter(i => L[i].b > 0);
+  const parts = [];
+  if (wash.length) parts.push(`${wash.join('·')} 워시`);
+  if (beamOn.length) {
+    const fx = [];
+    if (beamOn.some(i => L[i].p)) fx.push('프리즘');
+    if (beamOn.some(i => L[i].f)) fx.push('중앙 포커스');
+    fx.push(beamOn.some(i => L[i].m) ? '무빙O' : '무빙X');
+    parts.push(`빔 ${[...new Set(beamOn.map(i => colorName(L[i].c)))].join('·')}(${fx.join(', ')})`);
+  }
+  const f = frontOf(c);
+  if (f) parts.push(`인물조명 ${f}%`);
+  return parts.length ? parts.join(' + ') : '암전';
+}
+// 코멘트 → [설명, 위치] ('위치:'로 시작하는 줄은 위치 칸으로)
+function splitNote(c) {
+  if (!c.note) return [autoDescribe(c), ''];
+  const lines = c.note.split('\n');
+  const pos = lines.filter(l => /^\s*위치\s*[:：]/.test(l)).map(l => l.replace(/^\s*위치\s*[:：]\s*/, ''));
+  const desc = lines.filter(l => !/^\s*위치\s*[:：]/.test(l)).join('\n').trim();
+  return [desc || autoDescribe(c), pos.join('\n')];
+}
+const fadeNote = c => { const f = +c.fade || 0; return f <= 0.3 ? '컷인' : `${+f.toFixed(1)}초 페이드`; };
+
+let excelLib = null;
+function loadExcel() {
+  if (window.ExcelJS) return Promise.resolve(window.ExcelJS);
+  return excelLib || (excelLib = new Promise((res, rej) => {
+    const sc = el('script');
+    sc.src = 'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js';
+    sc.onload = () => res(window.ExcelJS);
+    sc.onerror = () => { excelLib = null; rej(new Error('엑셀 기능을 불러오지 못했어요 (인터넷 연결 확인)')); };
+    document.head.append(sc);
+  }));
+}
+
+async function exportExcel() {
+  const p = state.project;
+  if (!p) return;
+  let ExcelJS;
+  try { toast('엑셀 준비 중…'); ExcelJS = await loadExcel(); }
+  catch (e) { toast(e.message); return; }
+  const shots = await shootSections(() => stageThumb(), '콘티 사진 찍는 중');
+  if (!shots) return;
+  const list = cues(), total = duration() || audio.duration || 0;
+
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet('조명 콘티', { views: [{ state: 'frozen', ySplit: 5 }] });
+  ws.columns = [21, 10, 6, 18, 22, 22, 22, 22, 14, 14, 14, 14, 62].map(width => ({ width }));
+  const thin = { style: 'thin', color: { argb: 'FF9A9A9A' } };
+  const box = { top: thin, left: thin, bottom: thin, right: thin };
+  const fill = argb => ({ type: 'pattern', pattern: 'solid', fgColor: { argb } });
+  const put = (ref, value, o = {}) => {
+    const cell = ws.getCell(ref);
+    cell.value = value;
+    cell.alignment = { vertical: 'middle', horizontal: o.left ? 'left' : 'center', wrapText: true };
+    cell.font = { name: '맑은 고딕', size: o.size || 10, bold: !!o.bold, color: o.color ? { argb: o.color } : undefined };
+    if (o.fill) cell.fill = fill(o.fill);
+    return cell;
+  };
+  const merge = (r, v, o) => { ws.mergeCells(r); put(r.split(':')[0], v, o); };
+  const border = (r1, r2) => { for (let r = r1; r <= r2; r++) for (let c = 1; c <= 13; c++) ws.getCell(r, c).border = box; };
+
+  merge('A2:J3', `${p.name || '공연'} 조명 콘티`, { size: 14, bold: true });
+  put('K2', '팀 이름', { bold: true, fill: 'FFF2F2F2' }); ws.mergeCells('K2:L2');
+  merge('K3:L3', p.name || '', {});
+  ws.getRow(3).height = 30;
+
+  put('A4', '음악\n(스탠바이 or 음악먼저)', { bold: true, fill: 'FFF2F2F2' });
+  put('B4', '총 인원', { bold: true, fill: 'FFF2F2F2' });
+  put('C4', '큐', { bold: true, fill: 'FFF8D7E3' });
+  merge('D4:D5', '큐 / 시간', { bold: true, fill: 'FFF8D7E3' });
+  merge('E4:G4', '조명 설명 (빔 / 워시 / 인물조명)', { bold: true, fill: 'FFFFF2CC' });
+  put('H4', '위치 /\n무대 위 인원 수', { bold: true, fill: 'FFFCE4D6' });
+  merge('I4:J4', '정확한 위치 마킹\n(조명 스페이싱) 필요시 작성', { bold: true, fill: 'FFFCE4D6' });
+  merge('K4:L5', '기타사항\n\nEX > 암전\nEX > 페이드인 컷인', { bold: true, fill: 'FFE2EFDA' });
+  merge('M4:M5', '레퍼런스 사진 (시뮬레이션)', { bold: true, fill: 'FFDDEBF7' });
+  put('A5', '스탠바이', {});
+  put('B5', `${dancerCount()}명`, {});
+  put('E5', '빛줄기가 보이는\nLED 빔 라이트', { size: 9, fill: 'FFFFF2CC' });
+  put('F5', '넓게 묻어나는\nLED 워시 조명', { size: 9, fill: 'FFFFF2CC' });
+  put('G5', '핀 조명 / 인물조명\n(화이트)', { size: 9, fill: 'FFFFF2CC' });
+  put('H5', '댄서들의 위치', { size: 9, fill: 'FFFCE4D6' });
+  merge('I5:J5', '(리허설 시간 상 2~3개 큐만 가능)', { size: 9, fill: 'FFFCE4D6' });
+  ws.getRow(4).height = 44;
+  ws.getRow(5).height = 40;
+  border(4, 5);
+
+  const imgW = 430; // 사진 폭(px)
+  list.forEach((c, i) => {
+    const r = 6 + i, end = i + 1 < list.length ? list[i + 1].time : total;
+    const [desc, pos] = splitNote(c);
+    put(`C${r}`, i + 1, { bold: true });
+    put(`D${r}`, `${fmt(c.time)} - ${end ? fmt(end) : '끝'}`, {});
+    ws.mergeCells(`E${r}:G${r}`);
+    put(`E${r}`, `[${c.name || '섹션'}]\n${desc}`, { left: true });
+    put(`H${r}`, pos, {});
+    ws.mergeCells(`I${r}:J${r}`); put(`I${r}`, '', {});
+    ws.mergeCells(`K${r}:L${r}`); put(`K${r}`, fadeNote(c), {});
+    const s = shots[i], h = Math.round(imgW * s.h / s.w);
+    ws.getRow(r).height = h * 0.75 + 8;
+    const id = wb.addImage({ buffer: s.buf, extension: 'jpeg' });
+    ws.addImage(id, { tl: { col: 12.05, row: r - 1 + 0.03 }, ext: { width: imgW, height: h }, editAs: 'oneCell' });
+  });
+  border(6, 5 + list.length);
+  if (list.length > 10) {
+    const r = 7 + list.length;
+    ws.mergeCells(`A${r}:M${r}`);
+    put(`A${r}`, `※ 조명감독님 양식은 큐 10개까지예요. 지금 ${list.length}개 → 필요하면 합쳐서 정리해 주세요.`, { left: true, color: 'FFC00000' });
+  }
+
+  const buf = await wb.xlsx.writeBuffer();
+  download(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), `${safeName(p.name) || '공연'}_조명콘티.xlsx`);
+  toast('조명 콘티 엑셀을 저장했어요');
 }
 
 async function importFile(file) {
@@ -1973,8 +2115,16 @@ function bindEvents() {
   const pl = $('#projList');
   $('#btnProjList').addEventListener('click', e => { e.stopPropagation(); pl.hidden = !pl.hidden; });
   document.addEventListener('click', e => { if (!pl.hidden && !e.target.closest('.proj-box')) pl.hidden = true; });
-  $('#btnExport').addEventListener('click', exportProject);
-  $('#btnPhotos').addEventListener('click', savePhotos);
+  // 내보내기 메뉴: 공연 파일 / 섹션 사진 / 조명 콘티 엑셀
+  const em = $('#exportMenu');
+  $('#btnExport').addEventListener('click', e => { e.stopPropagation(); em.hidden = !em.hidden; });
+  document.addEventListener('click', e => { if (!em.hidden && !e.target.closest('#exportWrap')) em.hidden = true; });
+  em.addEventListener('click', e => {
+    const b = e.target.closest('button[data-ex]');
+    if (!b) return;
+    em.hidden = true;
+    ({ file: exportProject, photos: savePhotos, excel: exportExcel })[b.dataset.ex]();
+  });
   $('#btnImport').addEventListener('click', () => $('#fileImport').click());
   $('#fileImport').addEventListener('change', e => { if (e.target.files[0]) importFile(e.target.files[0]); e.target.value = ''; });
 

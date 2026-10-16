@@ -8,7 +8,8 @@ Upload the song, split it into sections, and set the lights for each section. Wh
 2. Play the song, or click the timeline to move to a point, then press **+ Add section here** (shortcut `M`)
 3. Pick a preset for each section, or tap the circles on the stage to choose lights and set their color and brightness
 4. **▶ Show mode** shows the lights full screen to the lighting director
-5. **Export** saves a `.lightcue.json` file. Send it on KakaoTalk or similar, and the other person opens it with **Import**
+5. **📷 Save photos** takes one picture of the stage per section (after the transition finishes), labeled with the section number, name, start time and transition. On PC it downloads one ZIP; on a phone the share sheet opens so you can save them straight to your photos
+6. **Export** saves a `.lightcue.json` file. Send it on KakaoTalk or similar, and the other person opens it with **Import**
 
 > Data is saved only in **this browser** on this device (IndexedDB). Use Export/Import to move it to another device or person.
 

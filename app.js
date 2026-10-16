@@ -1,6 +1,6 @@
-import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=67';
-import { GIRLS_DEMO, GIRLS_DEMO_NAMES, GIRLS_DEMO_COUNT } from './demo-girls.js?v=67';
-import { DRILL_DEMO, DRILL_DEMO_NAMES, DRILL_DEMO_COUNT } from './demo-drill.js?v=67';
+import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=68';
+import { GIRLS_DEMO, GIRLS_DEMO_NAMES, GIRLS_DEMO_COUNT } from './demo-girls.js?v=68';
+import { DRILL_DEMO, DRILL_DEMO_NAMES, DRILL_DEMO_COUNT } from './demo-drill.js?v=68';
 
 /* =========================================================
    상수
@@ -1698,7 +1698,7 @@ async function exportProject() {
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 5000);
-  toast('파일을 저장했어요. 카톡 등으로 공유하세요');
+  toast('작업 파일을 저장했어요 · 불러오기로 이어서 작업하거나 카톡 등으로 공유하세요');
 }
 
 /* =========================================================
@@ -2117,6 +2117,7 @@ function bindEvents() {
   document.addEventListener('click', e => { if (!pl.hidden && !e.target.closest('.proj-box')) pl.hidden = true; });
   // 내보내기 메뉴: 공연 파일 / 섹션 사진 / 조명 콘티 엑셀
   const em = $('#exportMenu');
+  if (/Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent)) $('.ex-key').textContent = '⌘S';
   $('#btnExport').addEventListener('click', e => { e.stopPropagation(); em.hidden = !em.hidden; });
   document.addEventListener('click', e => { if (!em.hidden && !e.target.closest('#exportWrap')) em.hidden = true; });
   em.addEventListener('click', e => {
@@ -2221,6 +2222,17 @@ function bindEvents() {
   });
 
   // 키보드
+  // Ctrl+S / ⌘S: 작업 파일 저장 (입력칸에서 글 쓰는 중에도, 브라우저의 '페이지 저장' 대신)
+  document.addEventListener('keydown', e => {
+    if ((e.metaKey || e.ctrlKey) && !e.altKey && !e.shiftKey && e.code === 'KeyS') {
+      e.preventDefault();
+      if (e.repeat) return;
+      // 목록에서 쓰던 이름/코멘트는 먼저 확정
+      const a = document.activeElement;
+      if (a && a.matches('.note-edit, .n-edit, .proj-edit')) a.blur();
+      exportProject();
+    }
+  }, true);
   document.addEventListener('keydown', e => {
     if ($('#guideModal').open) return; // 사용법 영상 보는 중에는 단축키 끄기
     if (e.target.closest('input, textarea, select') && e.target.type !== 'range') return;

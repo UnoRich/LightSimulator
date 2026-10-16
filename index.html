@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>LightSimulator - D.strict416</title>
   <meta name="description" content="댄스 공연용 조명 큐 시뮬레이터 — 노래에 맞춰 섹션별 조명을 미리 짜고 조명감독에게 보여주세요.">
-  <link rel="stylesheet" href="style.css?v=67">
+  <link rel="stylesheet" href="style.css?v=68">
 </head>
 <body>
   <header class="topbar">
@@ -33,7 +33,7 @@
       <div class="menu-wrap" id="exportWrap">
         <button id="btnExport" class="export-btn" title="내보내기" aria-haspopup="true">내보내기 ▾</button>
         <div class="pop-menu export-menu" id="exportMenu" hidden>
-          <button data-ex="file"><b>💾 공연 파일</b><small>공유·백업용 (.json, 불러오기로 열기)</small></button>
+          <button data-ex="file" class="ex-main"><b>💾 작업 파일 저장 <kbd class="ex-key">Ctrl+S</kbd></b><small>조명·동선·코멘트 전부 저장 · 불러오기로 이어서 작업</small></button>
           <button data-ex="photos"><b>📷 섹션 사진</b><small>섹션마다 무대 사진 + 코멘트 (ZIP)</small></button>
           <button data-ex="excel"><b>📊 조명 콘티 엑셀</b><small>조명감독님 양식 + 섹션별 사진 (.xlsx)</small></button>
         </div>
@@ -233,6 +233,6 @@
       }
     }
   </script>
-  <script type="module" src="app.js?v=67"></script>
+  <script type="module" src="app.js?v=68"></script>
 </body>
 </html>

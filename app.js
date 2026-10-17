@@ -1,6 +1,6 @@
-import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=69';
-import { GIRLS_DEMO, GIRLS_DEMO_NAMES, GIRLS_DEMO_COUNT } from './demo-girls.js?v=69';
-import { DRILL_DEMO, DRILL_DEMO_NAMES, DRILL_DEMO_COUNT } from './demo-drill.js?v=69';
+import { createStage, lightTargets, MAX_DANCERS } from './stage3d.js?v=71';
+import { GIRLS_DEMO, GIRLS_DEMO_NAMES, GIRLS_DEMO_COUNT } from './demo-girls.js?v=71';
+import { DRILL_DEMO, DRILL_DEMO_NAMES, DRILL_DEMO_COUNT } from './demo-drill.js?v=71';
 
 /* =========================================================
    상수
@@ -199,6 +199,7 @@ function cuesFromData(data) {
       pos: fullPos(c.pos),
     };
     if (c.move) cue.move = c.move;
+    if (BEAM_SPEEDS.includes(c.beamSpeed) && c.beamSpeed !== 1) cue.beamSpeed = c.beamSpeed;
     if (c.note) cue.note = c.note;
     if (c.steps) cue.steps = c.steps.map(st => ({ t: st.t, move: st.move, pos: fullPos(st.pos) }));
     return cue;
@@ -447,11 +448,16 @@ function buildStage() {
 // 전면등은 섹션마다 0 / 50 / 100 (예전 데이터는 100)
 const FRONT_STEPS = [0, 50, 100];
 const frontOf = c => c ? (FRONT_STEPS.includes(c.front) ? c.front : 100) : 100;
+// 빔 무빙 속도 배율 (섹션마다). 값이 없으면 1배 = 예전 속도
+const BEAM_SPEEDS = [0.25, 0.5, 1, 1.5, 2, 4];
+const beamSpeedOf = c => c && BEAM_SPEEDS.includes(c.beamSpeed) ? c.beamSpeed : 1;
+const speedLabel = v => `${v}배`;
 
 function renderStage(lights, fade = 0.15) {
   if (stage3d) {
     stage3d.setLights(lights, fade);
     stage3d.setFrontLights(frontOf(activeCue()), fade);
+    stage3d.setMoveSpeed(beamSpeedOf(activeCue()));
     const tg = dancerTarget();
     state.danceKey = tg.key;
     stage3d.setDancers(tg.pos, dancerCount(), tg.dur || Math.max(0.8, fade));
@@ -1190,6 +1196,7 @@ function renderCueList() {
     const li = el('li');
     li.dataset.id = c.id;
     if (c.id === state.activeCueId) li.classList.add('active');
+    if (beamSpeedOf(c) !== 1) li.style.setProperty('--mv-dur', `${1.6 / beamSpeedOf(c)}s`);
     const active = c.id === state.activeCueId;
     const nm = el('span', 'n', c.name || '(이름 없음)');
     nm.title = '이름을 누르면 바로 바꿀 수 있어요';
@@ -1300,6 +1307,7 @@ function addCue() {
     fade: DEFAULT_FADE,
     lights: base ? cloneLights(base.lights) : fill('#ffffff', 50),
     front: frontOf(base),
+    beamSpeed: beamSpeedOf(base) !== 1 ? beamSpeedOf(base) : undefined,
     pos: normalizePos(base ? currentPos().map(p => p.slice()) : null),
   };
   // 나눠진 섹션의 뒤쪽 ◆ 동선은 새 섹션으로 옮김
@@ -1379,6 +1387,7 @@ function renderSelection() {
   $('#btnPrism').classList.toggle('on', pb.length > 0 && pb.every(i => cue.lights[i].p));
   $('#btnFocus').classList.toggle('on', pb.length > 0 && pb.every(i => cue.lights[i].f));
   $('#btnMove').classList.toggle('on', pb.length > 0 && pb.every(i => cue.lights[i].m));
+  renderBeamSpeed();
   const first = cue.lights[targets()[0]];
   const bri = $('#bri');
   if (document.activeElement !== bri) { bri.value = first.b; }
@@ -1431,6 +1440,26 @@ function prismTargets() {
   const lit = cue ? BEAM_IDX.filter(i => cue.lights[i].b) : [];
   return lit.length ? lit : BEAM_IDX;
 }
+// 무빙 속도 슬라이더 (섹션 단위)
+// 켜진 빔 중 무빙이 하나도 없으면 흐리게 + 못 움직이게
+const hasMoving = c => !!c && BEAM_IDX.some(i => c.lights[i].m && c.lights[i].b);
+function renderBeamSpeed() {
+  const cue = activeCue(), v = beamSpeedOf(cue), sl = $('#beamSpeed');
+  const on = hasMoving(cue);
+  sl.disabled = !on;
+  $('#beamSpeedRow').classList.toggle('off', !on);
+  $('#beamSpeedRow').title = on ? '이 섹션의 빔 무빙 속도 (1배 = 기본, 섹션 전체에 적용)' : '↔ 무빙을 켜면 속도를 바꿀 수 있어요';
+  if (document.activeElement !== sl) sl.value = BEAM_SPEEDS.indexOf(v);
+  $('#beamSpeedVal').textContent = speedLabel(v);
+}
+function setBeamSpeed(v) {
+  const cue = activeCue();
+  if (!hasMoving(cue) || !BEAM_SPEEDS.includes(v)) return;
+  if (v === 1) delete cue.beamSpeed; else cue.beamSpeed = v;
+  $('#beamSpeedVal').textContent = speedLabel(v);
+  lightsChanged();
+}
+
 // key: 'p' 프리즘 / 'f' 센터 모으기 / 'm' 무빙
 function toggleBeamFlag(key, label) {
   const cue = activeCue();
@@ -1899,7 +1928,8 @@ function autoDescribe(c) {
     const fx = [];
     if (beamOn.some(i => L[i].p)) fx.push('프리즘');
     if (beamOn.some(i => L[i].f)) fx.push('중앙 포커스');
-    fx.push(beamOn.some(i => L[i].m) ? '무빙O' : '무빙X');
+    const sp = beamSpeedOf(c);
+    fx.push(beamOn.some(i => L[i].m) ? (sp !== 1 ? `무빙O ${speedLabel(sp)}` : '무빙O') : '무빙X');
     parts.push(`빔 ${[...new Set(beamOn.map(i => colorName(L[i].c)))].join('·')}(${fx.join(', ')})`);
   }
   const f = frontOf(c);
@@ -2032,6 +2062,7 @@ async function importFile(file) {
       pos: normalizePos(c.pos),
       steps: c.steps ? normalizeSteps(c.steps) : undefined,
       move: isFinite(c.move) && c.move > 0 ? clamp(+c.move, 0.3, 10) : undefined,
+      beamSpeed: BEAM_SPEEDS.includes(+c.beamSpeed) && +c.beamSpeed !== 1 ? +c.beamSpeed : undefined,
     })),
     dancerCount: clamp(Number.isInteger(src.dancerCount) ? src.dancerCount : DEFAULT_DANCERS, 0, MAX_DANCERS),
     names: Array.isArray(src.names) ? src.names.slice(0, MAX_DANCERS).map(n => String(n || '').slice(0, 4)) : undefined,
@@ -2197,6 +2228,7 @@ function bindEvents() {
   $('#btnPrism').addEventListener('click', () => toggleBeamFlag('p', '프리즘'));
   $('#btnFocus').addEventListener('click', () => toggleBeamFlag('f', '센터 모으기'));
   $('#btnMove').addEventListener('click', () => toggleBeamFlag('m', '무빙'));
+  $('#beamSpeed').addEventListener('input', e => setBeamSpeed(BEAM_SPEEDS[+e.target.value]));
   $('#dancerMinus').addEventListener('click', () => setDancerCount(dancerCount() - 1));
   $('#dancerPlus').addEventListener('click', () => setDancerCount(dancerCount() + 1));
   $('#formCopyPrev').addEventListener('click', copyPrevFormation);

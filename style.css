@@ -434,7 +434,12 @@ textarea:focus { outline: 2px solid var(--primary); outline-offset: 1px; }
 }
 .beam-mode:hover { background: #2c2550; border-color: #6a5cc4; }
 .beam-mode.on { background: #6a5cc4; border-color: #8f82ff; color: #fff; }
-.mini i.moving { animation: mini-sway 1.6s ease-in-out infinite alternate; }
+.bm-speed { flex-basis: 100%; display: flex; align-items: center; gap: 8px; font-size: 12px; color: #d6d0ff; white-space: nowrap; }
+.bm-speed input { flex: 1; min-width: 0; accent-color: #8f82ff; }
+.bm-speed.off { opacity: .35; }
+.bm-speed.off input { cursor: not-allowed; }
+#beamSpeedVal { min-width: 38px; font-weight: 700; color: #fff; font-variant-numeric: tabular-nums; }
+.mini i.moving { animation: mini-sway var(--mv-dur, 1.6s) ease-in-out infinite alternate; }
 @keyframes mini-sway { from { translate: -1.5px 0; } to { translate: 1.5px 0; } }
 .mini.pick i { cursor: pointer; transition: transform .1s; }
 .mini.pick i:hover { transform: scale(1.35); }

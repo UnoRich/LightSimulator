@@ -337,7 +337,7 @@ export function createStage(container, { onToggle, onRow }) {
       spot: null, pool, beam, lens, target, origin, spin, pmat, isBeam: true,
       aim, facets, sparks, top, baseLen: len, mat,
       home: target.clone(), focus: beamFocus(i, origin, top), aimAt: target.clone(),
-      dir: ((top ? i - N_WASH : i - N_WASH - N_BEAM_TOP) % 2) ? -1 : 1, mvT0: 0,
+      dir: ((top ? i - N_WASH : i - N_WASH - N_BEAM_TOP) % 2) ? -1 : 1, mvPh: 0,
       cur: { r: 0, g: 0, b: 0, o: 0, p: 0, f: 0, m: 0 },
       from: { r: 0, g: 0, b: 0, o: 0, p: 0, f: 0, m: 0 },
       to: { r: 0, g: 0, b: 0, o: 0, p: 0, f: 0, m: 0 },
@@ -410,6 +410,8 @@ export function createStage(container, { onToggle, onRow }) {
   const tmp = new THREE.Color();
   const clock = new THREE.Clock();
   const ease = k => k * k * (3 - 2 * k);
+  // 무빙 속도 배율 (섹션 단위, 1 = 기본). 위상을 누적해서 속도가 바뀌어도 빔이 튀지 않음
+  let moveSpeed = 1, lastNow = performance.now();
 
   function tick() {
     update();
@@ -418,6 +420,8 @@ export function createStage(container, { onToggle, onRow }) {
   function update() {
     const now = performance.now();
     const t = clock.getElapsedTime();
+    const dPh = Math.min(0.1, Math.max(0, (now - lastNow) / 1000)) * Math.PI * 2 / MOVE_PERIOD * moveSpeed;
+    lastNow = now;
     for (const L of lights) {
       const k = L.dur > 0 ? ease(Math.min(1, (now - L.t0) / (L.dur * 1000))) : 1;
       const { from, to, cur } = L;
@@ -445,9 +449,9 @@ export function createStage(container, { onToggle, onRow }) {
         cur.m = from.m + (to.m - from.m) * k;
         // 조준점: 기본 위치 ↔ 센터 모으기, 무빙이면 좌우로 흔들기
         L.aimAt.lerpVectors(L.home, L.focus, cur.f);
+        L.mvPh += dPh;
         if (cur.m > 0.001) {
-          const ph = ((now - L.mvT0) / 1000) * Math.PI * 2 / MOVE_PERIOD;
-          L.aimAt.x += Math.sin(ph) * L.dir * cur.m * (L.top ? MOVE_SWING.top : MOVE_SWING.floor);
+          L.aimAt.x += Math.sin(L.mvPh) * L.dir * cur.m * (L.top ? MOVE_SWING.top : MOVE_SWING.floor);
         }
         tmpDir.subVectors(L.aimAt, L.origin);
         const len = tmpDir.length();
@@ -513,7 +517,7 @@ export function createStage(container, { onToggle, onRow }) {
       tmp.set(l.c); // sRGB hex → 선형 색공간
       const o = l.b <= 0 ? 0 : Math.pow(l.b / 100 * MAX_LEVEL, 1.4);
       const m = l.m ? 1 : 0;
-      if (L.isBeam && m && !L.to.m) L.mvT0 = now; // 무빙을 켤 때 가운데에서 시작
+      if (L.isBeam && m && !L.to.m) L.mvPh = 0; // 무빙을 켤 때 가운데에서 시작
       Object.assign(L.to, { r: tmp.r, g: tmp.g, b: tmp.b, o, p: l.p ? 1 : 0, f: l.f ? 1 : 0, m });
       L.t0 = now;
       L.dur = fade;
@@ -522,6 +526,10 @@ export function createStage(container, { onToggle, onRow }) {
       const { mark } = marks[i];
       mark.title = `${ROW_NAMES[rowOf(i)]} ${colOf(i) + 1}번 · 밝기 ${l.b}%${l.p ? ' · 프리즘' : ''}${l.f ? ' · 센터 모으기' : ''}${l.m ? ' · 무빙' : ''}`;
     });
+  }
+
+  function setMoveSpeed(s) {
+    moveSpeed = s > 0 ? s : 1;
   }
 
   function setSelected(set) {
@@ -572,7 +580,7 @@ export function createStage(container, { onToggle, onRow }) {
     });
   }
 
-  return { capture, setLights, setSelected, resetView, setHouseLights, toggleHouseLights, setFrontLights, setDancers };
+  return { capture, setLights, setMoveSpeed, setSelected, resetView, setHouseLights, toggleHouseLights, setFrontLights, setDancers };
 }
 
 /* =========================================================
